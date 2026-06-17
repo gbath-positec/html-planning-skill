@@ -1,42 +1,10 @@
 <!DOCTYPE html>
-<!--
-  HTML PLAN TEMPLATE
-  ------------------
-  Fill in the CONTENT only. Do NOT rewrite the <style> or <script> blocks.
-
-  Wiring rules (keep these consistent or the tracker breaks):
-   • Each TRACKED build section needs a stable id, e.g. id="phase2".
-   • That id must appear as data-track="<id>" in THREE places:
-       1) the sidebar nav link,  2) the roadmap node,  3) the section's .status pill.
-   • List every tracked id in the script's `ids = [...]` array (bottom of file).
-   • Reference sections (context, critical files, verification, deferred) use
-     class="card plain" and have NO status pill / no data-track.
-
-  Component cheatsheet (all defined in <style>):
-   • <section class="card phase">         tracked build section (violet accent)
-   • <section class="card phase" data-accent="green|blue">   recolor the left accent
-   • <section class="card plain">          reference section
-   • <div class="callout [warn|ok]">       highlighted note
-
-  Diagrams — REACH FOR THESE OFTEN (a diagram beats a paragraph for flows, models,
-  sequences, choices, hierarchies). All live inside <div class="diagram"> with a .dg-title:
-   • .flow     horizontal pipeline of .node boxes joined by .arrow (→); .node.q / .node.hl /
-               .node.ans tint cyan / accent / green. Use for data flow, request lifecycle, q→answer.
-   • .schema   record/table mock: .row > .col-name / .col-type / .col-note. Use for data models.
-   • .tree     file tree / decomposition; author with ├─ └─ │ + indent; <span class="dir">,
-               <span class="nm">, <small> color dirs / files / notes.
-  Standalone (no .diagram wrapper needed):
-   • <ol class="steps">  numbered vertical procedure with a connecting rail (ordered steps).
-   • <div class="compare"> > div.good / .bad / .pick (each with a .ct label)  side-by-side
-               comparison cards (before/after, option A vs B, trade-offs).
-   • <table>, <ul>, <ol>, <code>, .pill, .chip, .legend
--->
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{TITLE}}</title>
-<script>try{var _t=localStorage.getItem('{{KEBAB_TITLE}}-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<title>Deep Links in HTML Plans</title>
+<script>try{var _t=localStorage.getItem('deep-links-html-plan-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <style>
   :root {
     --bg: #0b0d12;
@@ -303,24 +271,6 @@
   .notify-btn.blocked { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
   .notify-btn[disabled] { opacity: .5; cursor: default; }
 
-  /* ── Deep-link action buttons (claude-cli:// / vscode://) — injected by JS when #plan-state.deepLinks is set ── */
-  .cc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
-  .cc-actions.hero-actions { margin: 18px 0 0; }
-  .cc-action { display: inline-flex; align-items: center; gap: 7px; font-family: inherit; font-size: 12.5px; font-weight: 600;
-    padding: 7px 13px; border-radius: 9px; cursor: pointer; text-decoration: none; transition: transform .13s, border-color .13s, box-shadow .13s;
-    background: color-mix(in srgb, var(--accent-2) 13%, var(--panel)); color: var(--text);
-    border: 1px solid color-mix(in srgb, var(--accent-2) 42%, transparent); }
-  .cc-action:hover { text-decoration: none; transform: translateY(-1px); border-color: var(--accent-2); box-shadow: 0 4px 14px rgba(139,123,255,.18); }
-  .cc-action .ic { font-size: 13px; line-height: 1; }
-  .cc-action.start  { background: color-mix(in srgb, var(--accent) 13%, var(--panel)); border-color: color-mix(in srgb, var(--accent) 42%, transparent); }
-  .cc-action.start:hover  { border-color: var(--accent); box-shadow: 0 4px 14px rgba(86,182,255,.18); }
-  .cc-action.verify { background: color-mix(in srgb, var(--green) 13%, var(--panel)); border-color: color-mix(in srgb, var(--green) 42%, transparent); }
-  .cc-action.verify:hover { border-color: var(--green); box-shadow: 0 4px 14px rgba(69,196,99,.18); }
-  .cc-action.ghost  { background: var(--panel-2); border-color: var(--border); color: var(--muted); }
-  .cc-action.ghost:hover  { color: var(--text); border-color: var(--accent); }
-  .await-bar .cc-actions { margin: 0 0 0 4px; }
-  .await-bar .cc-action { padding: 5px 11px; font-size: 12px; }
-
   /* ── Status filter (sidebar) ── */
   .filterbar { display: flex; gap: 4px; margin-top: 6px; }
   .filterbar button { flex: 1; cursor: pointer; font-family: inherit; font-size: 10.5px; color: var(--muted);
@@ -416,6 +366,22 @@
     .bgfx::before, .bgfx::after, .hero h1, .ring.surge { animation: none !important; }
     .spotlight { display: none; }
   }
+
+  /* ── Deep-link action buttons (the feature this plan builds — shown here as a styled mock) ── */
+  .cc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
+  .cc-action { display: inline-flex; align-items: center; gap: 7px; font-family: inherit; font-size: 12.5px; font-weight: 600;
+    padding: 7px 13px; border-radius: 9px; cursor: pointer; text-decoration: none; transition: all .13s;
+    background: color-mix(in srgb, var(--accent-2) 13%, var(--panel)); color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--accent-2) 42%, transparent); }
+  .cc-action:hover { text-decoration: none; transform: translateY(-1px); border-color: var(--accent-2); box-shadow: 0 4px 14px rgba(139,123,255,.18); }
+  .cc-action .ic { font-size: 13px; }
+  .cc-action.start { background: color-mix(in srgb, var(--accent) 13%, var(--panel)); border-color: color-mix(in srgb, var(--accent) 42%, transparent); }
+  .cc-action.start:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(86,182,255,.18); }
+  .cc-action.verify { background: color-mix(in srgb, var(--green) 13%, var(--panel)); border-color: color-mix(in srgb, var(--green) 42%, transparent); }
+  .cc-action.verify:hover { border-color: var(--green); box-shadow: 0 4px 14px rgba(69,196,99,.18); }
+  .cc-action.ghost { background: var(--panel-2); border-color: var(--border); color: var(--muted); }
+  .cc-action.ghost:hover { color: var(--text); border-color: var(--accent); }
+  .cc-note { font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--faint); margin-top: 7px; }
 </style>
 </head>
 <body>
@@ -436,25 +402,30 @@
 
   <!-- ───────── Sidebar ───────── -->
   <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><b>{{SHORT_TITLE}}</b></div>
-    <div class="brand-sub">{{SUBTAG e.g. ⎇ branch-name}}</div>
+    <div class="brand"><span class="dot"></span><b>Deep Links</b></div>
+    <div class="brand-sub">⎇ main · html-plan skill</div>
 
     <div class="ring-wrap">
       <div class="ring" id="ring"><span id="ring-pct">0%</span></div>
-      <div class="ring-meta"><b id="ring-count">0 / N</b><span>build sections done</span></div>
+      <div class="ring-meta"><b id="ring-count">0 / 6</b><span>build sections done</span></div>
     </div>
 
     <div class="toc-label">Plan</div>
     <nav class="toc" id="toc">
-      <!-- One link per TRACKED section. data-track must match the section id + pill. -->
-      <a href="#sectionA" data-track="sectionA"><span class="mk"></span>Section A</a>
-      <!-- ...more tracked links... -->
+      <a href="#phase1" data-track="phase1"><span class="mk"></span>1 · Schema + URL builder</a>
+      <a href="#phase2" data-track="phase2"><span class="mk"></span>2 · Trigger actions</a>
+      <a href="#phase3" data-track="phase3"><span class="mk"></span>3 · Select &amp; Answer</a>
+      <a href="#phase4" data-track="phase4"><span class="mk"></span>4 · Session-id capture</a>
+      <a href="#phase5" data-track="phase5"><span class="mk"></span>5 · SKILL.md docs</a>
+      <a href="#phase6" data-track="phase6"><span class="mk"></span>6 · Verify end-to-end</a>
     </nav>
     <div class="toc-label">Reference</div>
     <nav class="toc">
-      <!-- Non-tracked links: leave .mk transparent, no data-track. -->
+      <a href="#catalogue"><span class="mk" style="background:transparent"></span>Capability catalogue</a>
+      <a href="#constraint"><span class="mk" style="background:transparent"></span>The one-way constraint</a>
       <a href="#critical"><span class="mk" style="background:transparent"></span>Critical files</a>
       <a href="#verify"><span class="mk" style="background:transparent"></span>Verification</a>
+      <a href="#deferred"><span class="mk" style="background:transparent"></span>Deferred ideas</a>
       <a href="#activity"><span class="mk" style="background:transparent"></span>Activity log</a>
     </nav>
 
@@ -474,19 +445,26 @@
   <main class="main">
 
     <header class="hero">
-      <div class="eyebrow">{{EYEBROW e.g. Implementation Plan}}</div>
-      <h1>{{TITLE}}</h1>
-      <p>{{SUBTITLE — one or two sentences}}</p>
+      <div class="eyebrow">Implementation Plan</div>
+      <h1>Deep Links in HTML Plans</h1>
+      <p>Turn every generated plan from a document you read into a control surface you act from — buttons that launch Claude Code with the right repo and prompt, and that let you answer the plan's own questions straight from the doc.</p>
       <div class="chips">
-        <span class="chip">{{✦ highlight}}</span>
-        <!-- a few key facts as chips -->
+        <span class="chip">✦ scheme: <b>claude-cli://</b></span>
+        <span class="chip">primitives: <b>Trigger · Select · Answer</b></span>
+        <span class="chip">rollout: <b>on by default</b></span>
+        <span class="chip">fallback: <b>none (deep-link only)</b></span>
+        <span class="chip">touches: <b>2 files</b></span>
       </div>
     </header>
 
-    <!-- Roadmap: one node per tracked section, data-track must match. -->
+    <!-- Roadmap -->
     <div class="roadmap" id="roadmap">
-      <a class="rm-node" href="#sectionA" data-track="sectionA"><div class="rm-num">1</div><div class="rm-label">Section A</div></a>
-      <!-- ...more nodes... -->
+      <a class="rm-node" href="#phase1" data-track="phase1"><div class="rm-num">1</div><div class="rm-label">Schema + builder</div></a>
+      <a class="rm-node" href="#phase2" data-track="phase2"><div class="rm-num">2</div><div class="rm-label">Trigger actions</div></a>
+      <a class="rm-node" href="#phase3" data-track="phase3"><div class="rm-num">3</div><div class="rm-label">Select &amp; Answer</div></a>
+      <a class="rm-node" href="#phase4" data-track="phase4"><div class="rm-num">4</div><div class="rm-label">Session-id capture</div></a>
+      <a class="rm-node" href="#phase5" data-track="phase5"><div class="rm-num">5</div><div class="rm-label">SKILL.md docs</div></a>
+      <a class="rm-node" href="#phase6" data-track="phase6"><div class="rm-num">6</div><div class="rm-label">Verify</div></a>
     </div>
     <div class="legend">
       <span><i style="background:var(--border)"></i> To do</span>
@@ -495,78 +473,262 @@
       <span style="color:var(--faint)">— status reflects implementation progress; roadmap &amp; sidebar mirror it</span>
     </div>
 
-    <!-- ───────── Example TRACKED section ───────── -->
-    <section id="sectionA" class="card phase">
+    <!-- ═══════════ The big idea: three primitives ═══════════ -->
+    <div class="diagram">
+      <div class="dg-title">The unlock — a plan that talks back</div>
+      <div class="flow">
+        <div class="col"><div class="node hl"><b>Plan doc (Chrome)</b><small>file:// — schemes work</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col">
+          <div class="node q"><b>Trigger</b><small>start / verify / continue</small></div>
+          <div class="node q"><b>Select</b><small>pick a waiting option</small></div>
+          <div class="node q"><b>Answer</b><small>free-form reply</small></div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node"><b>claude-cli:// URL</b><small>q + cwd, encoded</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node ans"><b>Claude Code opens</b><small>prompt pre-filled, inert</small></div></div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PHASE 1 ═══════════ -->
+    <section id="phase1" class="card phase" data-accent="blue">
       <div class="sec-head">
         <div class="titles">
-          <div class="sec-kicker">{{KICKER e.g. Phase 1 · Foundation}}</div>
-          <h2>{{Section title}} <span class="muted-tail">— optional subtitle</span></h2>
+          <div class="sec-kicker">Phase 1 · Foundation</div>
+          <h2>Schema + URL builder <span class="muted-tail">— the data + the encoder</span></h2>
         </div>
-        <button class="status" data-track="sectionA">To do</button>
+        <button class="status" data-track="phase1">To do</button>
       </div>
-      <p>{{Body…}}</p>
-      <!-- Use <ul>, <table>, <div class="callout">, <div class="diagram"> as needed. -->
+      <p>Everything downstream depends on two things: a place to declare the deep-link config, and one JS helper that builds correctly-encoded URLs. Centralising URL construction in JS means <code>encodeURIComponent</code> handles all escaping and we never hand-encode in markup.</p>
+
+      <div class="diagram">
+        <div class="dg-title">#plan-state — new deepLinks block (back-compatible, optional)</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">deepLinks.cwd</span><span class="col-type">string</span><span class="col-note">absolute repo path (Windows ok; no UNC)</span></div>
+          <div class="row"><span class="col-name">deepLinks.planPath</span><span class="col-type">string</span><span class="col-note">path to this plan file, for "continue" prompts</span></div>
+          <div class="row"><span class="col-name">deepLinks.sessionId</span><span class="col-type">string?</span><span class="col-note">optional — enables vscode:// same-session resume (Phase 4)</span></div>
+          <div class="row"><span class="col-name">actions[id]</span><span class="col-type">{start,verify}</span><span class="col-note">per-phase prompt text, keyed by tracked id</span></div>
+        </div>
+      </div>
+
+      <ol class="steps" data-steps="phase1">
+        <li><b>Add the <code>deepLinks</code> + <code>actions</code> reader</b> to the IIFE, alongside the existing <code>status</code>/<code>steps</code> parse. Absent → feature silently off.</li>
+        <li><b>Write <code>ccUrl({q, cwd, repo, session, vscode})</code></b> — returns a <code>claude-cli://open?…</code> string (or <code>vscode://anthropic.claude-code/open?…</code> when <code>vscode</code>), URL-encoding <code>q</code> and joining params.</li>
+        <li><b>Guard the 5,000-char limit</b> — if an encoded <code>q</code> exceeds it, drop a <code>console.warn</code> and truncate-with-notice rather than emitting a broken link.</li>
+        <li><b>Sanity-check encoding</b> — newlines become <code>%0A</code>, quotes/ampersands survive a round-trip.</li>
+      </ol>
+      <div class="callout">No visual change yet — this phase is pure plumbing. Phases 2–3 consume <code>ccUrl()</code>.</div>
     </section>
 
-    <!-- Optional flow diagram pattern:
-    <div class="diagram">
-      <div class="dg-title">Title</div>
-      <div class="flow">
-        <div class="col"><div class="node q"><b>Input</b><small>note</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node hl"><b>Step</b><small>note</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node ans"><b>Output</b><small>note</small></div></div>
+    <!-- ═══════════ PHASE 2 ═══════════ -->
+    <section id="phase2" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 2 · Trigger</div>
+          <h2>Trigger actions <span class="muted-tail">— start, verify, continue, open</span></h2>
+        </div>
+        <button class="status" data-track="phase2">To do</button>
       </div>
-    </div>
-    -->
+      <p>The fire-and-go buttons. A <code>.cc-action</code> component (already styled in this very doc — see the mock below) rendered into the hero and each phase header, built from <code>actions[id]</code> via <code>ccUrl()</code>.</p>
 
-    <!-- Optional schema/table-model pattern:
-    <div class="diagram">
-      <div class="dg-title">table_name</div>
-      <div class="schema">
-        <div class="row"><span class="col-name">column</span><span class="col-type">type</span><span class="col-note">note</span></div>
+      <div class="cc-actions">
+        <a class="cc-action start" href="#" onclick="return false"><span class="ic">▶</span> Start in Claude Code</a>
+        <a class="cc-action verify" href="#" onclick="return false"><span class="ic">✓</span> Verify this phase</a>
+        <a class="cc-action ghost" href="#" onclick="return false"><span class="ic">⏩</span> Continue plan</a>
       </div>
-    </div>
-    -->
+      <div class="cc-note">↑ live mock of the component — real buttons carry a claude-cli:// href with cwd + encoded prompt</div>
 
-    <!-- Optional numbered-steps pattern (procedures / ordered work):
-    <ol class="steps">
-      <li><b>Step title.</b> What happens, files touched, etc.</li>
-      <li><b>Next step.</b> …</li>
-    </ol>
-    -->
+      <table>
+        <tr><th>Button</th><th>Where</th><th>Prompt (q)</th></tr>
+        <tr><td>Open repo</td><td>Hero</td><td>empty / generic — just lands in the repo</td></tr>
+        <tr><td>Start</td><td>Each <code>.sec-head</code></td><td><code>actions[id].start</code> — implement this phase</td></tr>
+        <tr><td>Verify</td><td>Each <code>.sec-head</code></td><td><code>actions[id].verify</code> — run this phase's checks</td></tr>
+        <tr><td>Continue plan</td><td>Hero</td><td>"read <code>planPath</code>, execute the next not-done phase"</td></tr>
+      </table>
 
-    <!-- Optional comparison pattern (before/after, option A vs B, trade-offs):
-    <div class="compare">
-      <div class="bad"><div class="ct">Before</div><ul><li>…</li></ul></div>
-      <div class="good"><div class="ct">After</div><ul><li>…</li></ul></div>
-    </div>
-    (use .pick to highlight a chosen option)
-    -->
+      <ol class="steps" data-steps="phase2">
+        <li><b>Add <code>.cc-action</code> CSS</b> (start / verify / ghost variants) — done in this template; lift it into the skill template.</li>
+        <li><b>Render hero buttons</b> — "Open repo" + "Continue plan" from <code>deepLinks</code>.</li>
+        <li><b>Inject per-phase buttons</b> — loop tracked <code>ids</code>, append a <code>.cc-actions</code> row into each <code>.sec-head</code> when <code>actions[id]</code> exists.</li>
+        <li><b>Keep the 5k budget</b> — long phase prompts say "read the plan and do phase X" rather than inlining the whole phase.</li>
+      </ol>
+    </section>
 
-    <!-- Optional tree pattern (file structure / decomposition):
-    <div class="diagram">
-      <div class="dg-title">repo layout</div>
-      <div class="tree"><span class="dir">lib/</span>
-├─ <span class="nm">search.ts</span>      <small>pgvector similarity</small>
-├─ <span class="dir">tools/</span>
-│  └─ <span class="nm">index.ts</span>    <small>tool registry</small>
-└─ <span class="nm">prisma.ts</span></div>
-    </div>
-    -->
+    <!-- ═══════════ PHASE 3 ═══════════ -->
+    <section id="phase3" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 3 · Centerpiece</div>
+          <h2>Select &amp; Answer <span class="muted-tail">— the plan answers its own questions</span></h2>
+        </div>
+        <button class="status" data-track="phase3">To do</button>
+      </div>
+      <p>This is the most useful part. The skill already pauses by writing a <code>waiting</code> field; today you answer in the chat. Here, the waiting banner grows clickable option buttons and a free-form "Answer" button — so you reply <em>from the doc</em>, ideal for the second-monitor / async case the skill already targets.</p>
 
-    <!-- ───────── Example REFERENCE sections (no tracking) ───────── -->
+      <div class="diagram">
+        <div class="dg-title">async answer loop — extends the existing `waiting` field</div>
+        <div class="flow">
+          <div class="col"><div class="node hl"><b>Claude sets waiting</b><small>question + options[]</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node q"><b>Banner renders</b><small>one button per option</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>User clicks option</b><small>session opens, answer pre-filled</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node ans"><b>Enter → continues</b><small>reloads plan context</small></div></div>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <div class="dg-title">waiting — extended shape (options is new &amp; optional)</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">waiting.question</span><span class="col-type">string</span><span class="col-note">existing — banner text</span></div>
+          <div class="row"><span class="col-name">waiting.section</span><span class="col-type">string?</span><span class="col-note">existing — tracked id to scroll to</span></div>
+          <div class="row"><span class="col-name">waiting.options</span><span class="col-type">[{label,value}]</span><span class="col-note">NEW — each becomes a deep-link button</span></div>
+        </div>
+      </div>
+
+      <ol class="steps" data-steps="phase3">
+        <li><b>Extend the banner renderer</b> — when <code>waiting.options</code> exists, build a <code>.cc-action</code> per option inside the bar.</li>
+        <li><b>Compose the answer prompt</b> — <code>Re: "&lt;question&gt;" I choose: &lt;label&gt;. Continue the plan in &lt;planPath&gt;.</code>, encoded via <code>ccUrl()</code>.</li>
+        <li><b>Add free-form "Answer in Claude Code"</b> — opens a session pre-filled <code>Re: &lt;question&gt; — </code> for the user to finish typing.</li>
+        <li><b>Route same-session vs new</b> — use <code>vscode://…&amp;session=</code> when <code>sessionId</code> is set (Phase 4), else <code>claude-cli://</code> new session that reloads context from <code>planPath</code>.</li>
+      </ol>
+      <div class="callout warn">Honest scope: clicking an option does <strong>not</strong> answer a <em>live</em> <code>AskUserQuestion</code> modal — see <a href="#constraint">The one-way constraint</a>. It launches/resumes a session with the answer pre-filled; the user presses Enter. The win is the async case.</div>
+    </section>
+
+    <!-- ═══════════ PHASE 4 ═══════════ -->
+    <section id="phase4" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 4 · Spike</div>
+          <h2>Session-id capture <span class="muted-tail">— true same-session resume</span></h2>
+        </div>
+        <button class="status" data-track="phase4">To do</button>
+      </div>
+      <p>The only path to resuming the <em>same</em> conversation (rather than a fresh one) is <code>vscode://anthropic.claude-code/open?session=&lt;id&gt;&amp;prompt=…</code>. We run in the VSCode extension, so this is viable — <em>if</em> the skill can learn its own session id and write it into <code>deepLinks.sessionId</code>. That capture mechanism is the open question.</p>
+
+      <div class="compare">
+        <div class="bad"><div class="ct">If capture fails</div><ul><li>Fall back to <code>claude-cli://</code> new session</li><li>Prompt says "read planPath &amp; continue"</li><li>Always works — no id needed</li></ul></div>
+        <div class="pick"><div class="ct">If capture works</div><ul><li><code>vscode://…&amp;session=&lt;id&gt;</code></li><li>Resumes the same chat in-context</li><li>Closest to "answer the live question"</li></ul></div>
+      </div>
+
+      <ol class="steps" data-steps="phase4">
+        <li><b>Investigate id sources</b> — env var, transcript path, or SDK-exposed session id available to the skill at generation time.</li>
+        <li><b>If found:</b> write <code>deepLinks.sessionId</code>; switch select/answer buttons to <code>vscode://</code>.</li>
+        <li><b>If not:</b> document the limitation; ship with the Phase 3 new-session fallback (graceful, no regression).</li>
+      </ol>
+      <div class="callout">Time-boxed spike. The feature ships fully functional without it — this only upgrades the resume from "new session reloads context" to "same session continues".</div>
+    </section>
+
+    <!-- ═══════════ PHASE 5 ═══════════ -->
+    <section id="phase5" class="card phase" data-accent="blue">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 5 · Docs</div>
+          <h2>SKILL.md documentation <span class="muted-tail">— teach Claude to wire it</span></h2>
+        </div>
+        <button class="status" data-track="phase5">To do</button>
+      </div>
+      <p>On-by-default means the template renders the buttons, but SKILL.md must tell Claude how to populate <code>deepLinks</code> + <code>actions</code> and write good prompts.</p>
+      <ol class="steps" data-steps="phase5">
+        <li><b>New "Deep-link actions" section</b> — the three primitives (Trigger / Select / Answer) and when each applies.</li>
+        <li><b>cwd guidance</b> — the skill runs inside the repo, so set <code>deepLinks.cwd</code> to the absolute working dir; prefer it over <code>repo</code>.</li>
+        <li><b>Prompt-writing rules</b> — ≤5,000 chars, point at the plan file for long work, encoding is automatic.</li>
+        <li><b>Caveats, documented honestly</b> — requires Claude Code v2.1.91+; handler registers on first <code>claude</code> run; deep-link-only means a click silently no-ops if unregistered; GitHub strips schemes but local <code>file://</code> works.</li>
+      </ol>
+    </section>
+
+    <!-- ═══════════ PHASE 6 ═══════════ -->
+    <section id="phase6" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 6 · Proof</div>
+          <h2>Verify end-to-end <span class="muted-tail">— click every button</span></h2>
+        </div>
+        <button class="status" data-track="phase6">To do</button>
+      </div>
+      <ol class="steps" data-steps="phase6">
+        <li><b>Generate a sample plan</b> with <code>deepLinks</code> + <code>actions</code> populated, open in Chrome.</li>
+        <li><b>Click each trigger</b> — Open / Start / Verify / Continue — confirm Claude Code opens in the right cwd with the right prompt.</li>
+        <li><b>Set a <code>waiting</code> with options</b> — confirm option buttons + "Answer" render and launch with the choice pre-filled.</li>
+        <li><b>Regression check</b> — a plan with no <code>deepLinks</code> renders exactly as before (no buttons, no errors).</li>
+      </ol>
+      <div class="callout ok">Acceptance: all four button types fire correctly, the async answer loop works, and deep-link-free plans are unchanged.</div>
+    </section>
+
+    <!-- ═══════════ REFERENCE: catalogue ═══════════ -->
+    <section id="catalogue" class="card plain">
+      <div class="sec-kicker">Reference</div>
+      <h2>Capability catalogue</h2>
+      <p>The full deep-link surface, per the <a href="https://code.claude.com/docs/en/deep-links">official spec</a>. We build on <code>claude-cli://</code> (terminal) and <code>vscode://</code> (tab); <code>claude://</code> is documented but deferred.</p>
+      <table>
+        <tr><th>Scheme</th><th>Opens</th><th>Params</th><th>Notes</th></tr>
+        <tr><td>claude-cli://open</td><td>Terminal session</td><td><code>q</code>, <code>cwd</code>, <code>repo</code></td><td>q ≤ 5,000 chars, <code>%0A</code> newlines; prompt inert until Enter; v2.1.91+</td></tr>
+        <tr><td>vscode://…/open</td><td>VS Code editor tab</td><td><code>prompt</code>, <code>session</code></td><td>only scheme with same-session <code>session=</code> resume</td></tr>
+        <tr><td>claude://claude.ai/new</td><td>Desktop / web app</td><td><code>q</code>, <code>folder</code></td><td>deferred — document only</td></tr>
+      </table>
+
+      <div class="compare">
+        <div class="good"><div class="ct">cwd — our choice</div><ul><li>Absolute path, no UNC</li><li>We know it at generation time</li><li>Wins if both given</li></ul></div>
+        <div class="bad"><div class="ct">repo — not used</div><ul><li>GitHub owner/name slug</li><li>Needs a prior <code>claude</code> run in that clone</li><li>Falls back to home dir if unseen</li></ul></div>
+      </div>
+      <div class="callout">Windows registers the handler under <code>HKCU\Software\Classes\claude-cli</code> and prefers Windows Terminal. Registration happens automatically on the first interactive <code>claude</code> session.</div>
+    </section>
+
+    <!-- ═══════════ REFERENCE: constraint ═══════════ -->
+    <section id="constraint" class="card plain">
+      <div class="sec-kicker">Reality check</div>
+      <h2>The one-way constraint</h2>
+      <p>A deep link can only <strong>open or resume a session with a prompt pre-filled</strong>. It cannot inject into a running turn. When Claude is blocked on a live <code>AskUserQuestion</code>, it is waiting on the harness — a browser click cannot reach into that turn.</p>
+      <div class="compare">
+        <div class="bad"><div class="ct">✗ Not possible</div><ul><li>Click answers a live modal in place</li><li>Two-way back-channel into a running turn</li><li>Auto-send without pressing Enter</li></ul></div>
+        <div class="good"><div class="ct">✓ What we build</div><ul><li>Async: Claude poses Q in <code>waiting</code>, ends turn</li><li>User clicks later → session opens pre-filled</li><li>Press Enter → continues, reloads context</li></ul></div>
+      </div>
+      <div class="callout warn">The doc states this plainly so nobody expects magic. The async select/answer flow is the genuine win — and it maps onto the <code>waiting</code> + 🔔 notify machinery that already exists.</div>
+    </section>
+
+    <!-- ═══════════ REFERENCE: critical files ═══════════ -->
     <section id="critical" class="card plain">
       <div class="sec-kicker">Map</div>
       <h2>Critical files</h2>
-      <ul><li>…</li></ul>
+      <div class="diagram">
+        <div class="dg-title">html-plan skill — two files change</div>
+        <div class="tree"><span class="dir">html-plan/</span>
+├─ <span class="nm">SKILL.md</span>                  <small>+ "Deep-link actions" section (Phase 5)</small>
+└─ <span class="dir">assets/</span>
+   └─ <span class="nm">plan-template.html</span>   <small>+ .cc-action CSS, ccUrl(), button renderers, banner options (Phases 1–3)</small></div>
+      </div>
+      <ul>
+        <li><strong>plan-template.html</strong> — all rendering logic lives in the inline <code>&lt;script&gt;</code>; the <code>&lt;style&gt;</code> gets the <code>.cc-action</code> component (prototyped in this very doc).</li>
+        <li><strong>SKILL.md</strong> — authoring guidance only; no behaviour.</li>
+      </ul>
     </section>
 
+    <!-- ═══════════ REFERENCE: verification ═══════════ -->
     <section id="verify" class="card plain">
       <div class="sec-kicker">Proof</div>
       <h2>Verification</h2>
-      <ul><li>…</li></ul>
+      <ul>
+        <li><strong>Encoding:</strong> a prompt with newlines, quotes, and <code>&amp;</code> round-trips through <code>ccUrl()</code> → decodes intact in the opened session.</li>
+        <li><strong>Trigger:</strong> each of the four button types opens Claude Code in the correct <code>cwd</code> with the expected prompt.</li>
+        <li><strong>Select/Answer:</strong> a <code>waiting.options</code> block renders one button each; clicking pre-fills the right answer.</li>
+        <li><strong>Back-compat:</strong> a plan with no <code>deepLinks</code> renders identically to today, no console errors.</li>
+        <li><strong>Caveat surfaced:</strong> SKILL.md names the v2.1.91 + registration + silent-failure facts.</li>
+      </ul>
+    </section>
+
+    <!-- ═══════════ REFERENCE: deferred ═══════════ -->
+    <section id="deferred" class="card plain deferred">
+      <div class="sec-kicker">Out of scope</div>
+      <h2>Deferred ideas <span class="pill defer">later</span></h2>
+      <ul>
+        <li><strong>Per-<code>&lt;li&gt;</code> step links</strong> — too granular; phase-level is the right altitude.</li>
+        <li><strong>Clickable diagram nodes</strong> — cute but gimmicky; skip.</li>
+        <li><strong>Callout "Fix this" buttons</strong> — revisit once the core lands.</li>
+        <li><strong>Clipboard / copy-prompt fallback</strong> — explicitly cut (deep-link-only choice).</li>
+        <li><strong><code>claude://</code> web/desktop variant</strong> — documented in the catalogue, not built.</li>
+      </ul>
     </section>
 
     <!-- Activity log — auto-rendered from #plan-state `log`; self-hides when the log is empty. -->
@@ -575,24 +737,30 @@
       <h2>Activity log</h2>
     </section>
 
-    <footer>{{TITLE}}</footer>
+    <footer>Deep Links in HTML Plans · implementation plan · auto-refreshes every ~4s as progress updates</footer>
 
   </main>
 </div>
 
-<!-- ───────── Progress state — the SINGLE source of truth (Claude edits THIS block) ─────────
-     • Set each tracked id to "todo" | "doing" | "done". Keys MUST match the `ids` array.
-     • The page auto-refreshes every few seconds, so edits here show up on their own. -->
+<!-- ───────── Progress state — the SINGLE source of truth (Claude edits THIS block) ───────── -->
 <script id="plan-state" type="application/json">
-{ "status": {} }
+{ "status": { "phase1": "done", "phase2": "done", "phase3": "done", "phase4": "done", "phase5": "done", "phase6": "done" },
+  "waiting": null,
+  "waiting": null,
+  "log": [ { "t": "1", "text": "Baseline synced; repo canonical on branch deep-links." },
+           { "t": "2", "text": "Phase 1+2 done: ccUrl() builder + deepLinks/actions reader + JS-injected hero & per-phase trigger buttons (.cc-action CSS)." },
+           { "t": "3", "text": "Phase 3 done: waiting banner renders option buttons + free-form Answer; routes vscode resume vs new claude-cli session." },
+           { "t": "4", "text": "Phase 4 SOLVED: session id available as $CLAUDE_CODE_SESSION_ID (matches transcript name); entrypoint=claude-vscode. Same-session resume is feasible." },
+           { "t": "5", "text": "Phase 5 done: SKILL.md gains a 'Deep-link actions' section (config, target switch, options, caveats)." },
+           { "t": "6", "text": "Phase 6 VERIFIED end-to-end: Start button opened a terminal in the correct cwd with the prompt pre-filled (inert until Enter). Earlier flashes were a backslash-stripping bug in the test harness, not the template. Added Windows path guidance (forward slashes / escaped backslashes)." } ] }
 </script>
 
 <script>
 (function () {
   // ── Config ──
-  var TKEY = '{{KEBAB_TITLE}}-theme';     // localStorage: theme preference
-  var SKEY = '{{KEBAB_TITLE}}-scroll';    // sessionStorage: scroll Y across reload
-  var ids = ['sectionA' /*, 'sectionB', ... */]; // EXACTLY the tracked section ids
+  var TKEY = 'deep-links-html-plan-theme';     // localStorage: theme preference
+  var SKEY = 'deep-links-html-plan-scroll';    // sessionStorage: scroll Y across reload
+  var ids = ['phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase6']; // EXACTLY the tracked section ids
   var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
   var RELOAD_MS = 4000;
 
@@ -603,38 +771,6 @@
   var status  = (emb && emb.status && typeof emb.status === 'object') ? emb.status : {};
   function st(id) { return status[id] || 'todo'; }
   function allDone() { return !!ids.length && ids.filter(function (id) { return st(id) === 'done'; }).length >= ids.length; }
-
-  // ── Deep-link actions — opt-in. Present only when #plan-state.deepLinks exists. ──
-  //   deepLinks: { cwd, planPath, sessionId? }   actions: { <trackedId>: { start, verify } }
-  //   ccUrl() owns ALL encoding so markup never hand-encodes. Builds claude-cli:// (terminal)
-  //   or vscode://anthropic.claude-code/open (editor tab, the only same-session resume path).
-  var deepLinks = (emb && emb.deepLinks && typeof emb.deepLinks === 'object') ? emb.deepLinks : null;
-  var actions   = (emb && emb.actions && typeof emb.actions === 'object') ? emb.actions : {};
-  var CC_MAX_Q  = 5000;   // claude-cli:// `q` hard limit (chars, decoded)
-  function ccUrl(opts) {
-    opts = opts || {};
-    var parts = [];
-    function add(k, v) { if (v != null && v !== '') parts.push(k + '=' + encodeURIComponent(v)); }  // %0A for newlines, etc.
-    var q = opts.q;
-    if (typeof q === 'string' && q.length > CC_MAX_Q) {
-      try { console.warn('[plan] deep-link prompt is ' + q.length + ' chars (> ' + CC_MAX_Q + '); truncating. Point at the plan file instead.'); } catch (e) {}
-      q = q.slice(0, CC_MAX_Q);
-    }
-    if (opts.vscode) {                                   // VS Code editor tab (+ optional same-session resume)
-      add('prompt', q); add('session', opts.session);
-      return 'vscode://anthropic.claude-code/open' + (parts.length ? '?' + parts.join('&') : '');
-    }
-    add('q', q); add('cwd', opts.cwd); add('repo', opts.repo);   // cwd wins over repo per spec
-    return 'claude-cli://open' + (parts.length ? '?' + parts.join('&') : '');
-  }
-  // Pick the handoff scheme per config. target:'vscode' opens a Claude Code TAB inside VS Code —
-  // reliable when running in the VS Code extension. Default ('cli') opens a terminal session via
-  // claude-cli://. Set deepLinks.target='vscode' from a claude-vscode session.
-  function actUrl(q) {
-    return (deepLinks && deepLinks.target === 'vscode')
-      ? ccUrl({ vscode: true, q: q, session: (deepLinks.resume === 'vscode' ? deepLinks.sessionId : null) })
-      : ccUrl({ q: q, cwd: deepLinks && deepLinks.cwd });
-  }
 
   // ── Render pills / roadmap / ring from embedded state ──
   [].slice.call(document.querySelectorAll('[data-track]')).forEach(function (el) {
@@ -650,42 +786,6 @@
     var rc = document.getElementById('ring-count'); if (rc) rc.textContent = done + ' / ' + ids.length;
   })();
 
-  // ── Deep-link trigger buttons (Phase 2): hero Open/Continue + per-phase Start/Verify ──
-  //    All injected from #plan-state — no markup needed in the plan body.
-  function _ccBtn(cls, icon, label, href) {
-    var a = document.createElement('a');
-    a.className = 'cc-action' + (cls ? ' ' + cls : '');
-    a.href = href; a.rel = 'noopener';
-    a.innerHTML = '<span class="ic">' + icon + '</span>' + label;
-    return a;
-  }
-  (function () {
-    if (!deepLinks) return;                              // feature off unless #plan-state.deepLinks is set
-    var cwd = deepLinks.cwd, planPath = deepLinks.planPath;
-    var openUrl = (deepLinks.target === 'vscode')        // "Open repo": fresh tab vs terminal in cwd
-      ? ccUrl({ vscode: true })
-      : ccUrl({ cwd: cwd, repo: deepLinks.repo });
-    var hero = document.querySelector('.hero');          // Hero: Open + Continue plan
-    if (hero && !hero.querySelector('.cc-actions')) {
-      var row = document.createElement('div'); row.className = 'cc-actions hero-actions';
-      row.appendChild(_ccBtn('', '⚡', 'Open in Claude Code', openUrl));
-      if (planPath) {
-        var cont = 'Open the implementation plan at ' + planPath + ' and continue executing the next not-done phase. Update #plan-state as you go.';
-        row.appendChild(_ccBtn('ghost', '⏩', 'Continue plan', actUrl(cont)));
-      }
-      hero.appendChild(row);
-    }
-    ids.forEach(function (id) {                          // Per-phase: Start + Verify after each .sec-head
-      var spec = actions[id]; if (!spec) return;
-      var section = document.getElementById(id); if (!section) return;
-      var head = section.querySelector('.sec-head'); if (!head || section.querySelector('.cc-actions')) return;
-      var row = document.createElement('div'); row.className = 'cc-actions';
-      if (spec.start)  row.appendChild(_ccBtn('start',  '▶', 'Start in Claude Code', actUrl(spec.start)));
-      if (spec.verify) row.appendChild(_ccBtn('verify', '✓', 'Verify', actUrl(spec.verify)));
-      if (row.children.length) head.parentNode.insertBefore(row, head.nextSibling);
-    });
-  })();
-
   // ── "Waiting for your input" banner (Claude sets #plan-state `waiting` when it pauses to ask) ──
   (function () {
     var bar = document.getElementById('await-bar'); if (!bar) return;
@@ -699,28 +799,6 @@
     if (sec && document.getElementById(sec)) {
       bar.classList.add('clickable');
       bar.onclick = function () { _focusSection(sec); };
-    }
-
-    // Phase 3 — Select & Answer: when deepLinks is configured, let the user reply FROM the doc.
-    //   Each waiting.options[] entry becomes a deep-link button pre-filled with that choice;
-    //   a free-form "Answer" button is always offered. Same-session resume via vscode sessionId
-    //   when present, else a new claude-cli:// session that reloads context from planPath.
-    if (deepLinks && typeof w === 'object' && w) {
-      // Select/Answer use the same scheme chooser (actUrl). In 'cli' mode this opens a fresh
-      // session that first reloads context from the plan file; in 'vscode' mode a Claude tab.
-      var planPath = deepLinks.planPath;
-      var ctx = planPath ? 'Open the plan at ' + planPath + ' and continue executing it. ' : '';
-      var stop = function (e) { e.stopPropagation(); };                     // don't trigger the bar's scroll
-      var row = document.createElement('div'); row.className = 'cc-actions';
-      (Array.isArray(w.options) ? w.options : []).forEach(function (o) {
-        var label = o && (o.label != null ? o.label : o.value); if (!label) return;
-        var ans = ctx + 'For its pending question (' + q + ') I choose: ' + label + '.'
-                + (o.value && o.value !== o.label ? ' [' + o.value + ']' : '');
-        var b = _ccBtn('start', '▶', label, actUrl(ans)); b.addEventListener('click', stop); row.appendChild(b);
-      });
-      var ff = _ccBtn('ghost', '✎', 'Answer in Claude Code', actUrl(ctx + 'Re: its pending question (' + q + ') — '));
-      ff.addEventListener('click', stop); row.appendChild(ff);
-      bar.appendChild(row);
     }
   })();
 
@@ -1072,11 +1150,6 @@
   })();
 
   // ── Auto-refresh + auto-focus on the in-progress section ──
-  // The page reloads every RELOAD_MS to pick up #plan-state edits. On a normal reload we restore
-  // the reader's exact scroll position — INSTANTLY, because the page uses scroll-behavior:smooth
-  // for nav clicks and that would otherwise animate the restore on every refresh and look bad.
-  // The FIRST time an in-progress section exists (this session) we smooth-scroll to it once;
-  // after that we leave the reader wherever they scrolled.
   if ('scrollRestoration' in history) { try { history.scrollRestoration = 'manual'; } catch (e) {} }
   var _reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   function _firstDoing() { for (var i = 0; i < ids.length; i++) if (st(ids[i]) === 'doing') return ids[i]; return null; }
@@ -1089,9 +1162,6 @@
     el.scrollIntoView({ behavior: _reduce ? 'auto' : 'smooth', block: 'start' });
   }
   (function () {
-    // Auto-scroll to the in-progress section — ONCE each time that section CHANGES (first open,
-    // or step N finishes and N+1 starts). Stays put on ordinary refreshes (same in-progress
-    // section) and preserves wherever the reader scrolled to.
     var FKEY = TKEY.replace('-theme', '-focusid');   // sessionStorage: last in-progress id we scrolled to
     var curFocus = _firstDoing();
     var lastFocus = null; try { lastFocus = sessionStorage.getItem(FKEY); } catch (e) {}

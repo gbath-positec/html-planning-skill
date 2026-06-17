@@ -147,3 +147,91 @@ The template ships these for whoever opens the plan; they persist across the 4s 
   title if the browser blocks notifications (e.g. on the `file://` origin).
 - **Collapse** chevrons per phase, a **To do / Doing / Done filter**, **j / k** keyboard jump,
   and a right-edge **mini-map** of section status — all for navigating large plans.
+
+## Deep-link actions (turn the plan into a control surface)
+
+A plan can carry **deep-link buttons** that launch Claude Code straight from the doc — open the
+repo, start/verify a phase, continue the plan, or let the user **answer the plan's own question**
+by clicking an option. Buttons are **injected by the template's JS from `#plan-state`** — you add
+data, not markup. The whole feature is **opt-in: nothing renders unless you add a `deepLinks`
+block.** When you do, it's on by default (hero + per-phase buttons appear automatically).
+
+```jsonc
+{
+  "status": { "phase1": "doing" },
+  "deepLinks": {
+    "target": "cli",                              // "cli" = terminal (default, widely works); "vscode" = Claude tab
+    "cwd": "C:\\Users\\you\\Desktop\\my-repo",   // absolute working dir (used by "cli" target)
+    "planPath": "Docs/my-plan.html"               // used by the "Continue plan" / answer buttons
+  },
+  "actions": {
+    "phase1": { "start": "Implement Phase 1 …", "verify": "Run Phase 1's tests …" },
+    "phase2": { "start": "Implement Phase 2 …" }
+  }
+}
+```
+
+**What renders:**
+- **Hero** — "⚡ Open repo in Claude Code" (uses `cwd`) and, when `planPath` is set, "⏩ Continue
+  plan" (prompts Claude to open the plan and execute the next not-done phase).
+- **Per phase** — "▶ Start in Claude Code" and "✓ Verify" for any tracked id present in `actions`,
+  injected into that phase's header.
+- **Waiting banner** — see `waiting.options` below.
+
+**Pick the `target` first — this is the load-bearing choice:**
+- **`"cli"`** (default) → buttons open `claude-cli://open?q=…&cwd=…`, a **terminal** session. This
+  is the broadly-working path. Needs the handler registered (Claude Code **v2.1.91+**, auto-registers
+  on first interactive run). One observed quirk: the handler reliably opens the **first** session,
+  but if a Claude terminal is already open, a *subsequent* click may flash-and-close — close the
+  prior one (or just rely on one button at a time).
+- **`"vscode"`** (experimental) → buttons open `vscode://anthropic.claude-code/open?prompt=…`, a
+  **Claude Code tab** in the current VS Code window (no `cwd` needed). In principle ideal inside the
+  VS Code extension, but **observed inert on at least one setup** where `cli` worked — verify before
+  relying on it. Leave `target` unset/`"cli"` unless you've confirmed `vscode://` opens on the box.
+
+**Then fill the rest:**
+- **`cwd`** (cli target) — the skill runs *inside the repo*, so set the absolute working dir.
+  Prefer it over `repo` (a GitHub slug). The template's `ccUrl()` URL-encodes everything; never
+  hand-encode. **On Windows, write the path with forward slashes (`C:/Users/you/repo`) or
+  double-escaped backslashes (`C:\\Users\\you\\repo`)** — a single-backslash JSON string corrupts
+  the path and the launched terminal can't `cd`, so it flashes shut. Avoid raw double-quotes in
+  prompt text (the template uses parens) — they can break a shell handoff.
+- **Prompts (`actions[id].start` / `.verify`)** — capped at **5,000 chars**. For long work don't
+  inline it — point Claude at the plan: *"Open the plan at `planPath` and implement Phase 2."*
+- **Select/Answer** open a fresh tab/session whose prompt says "open the plan at `planPath` and
+  continue" so context is reloaded from the doc — works for both targets.
+- **`resume: "vscode"` + `sessionId` (optional, experimental)** — with the `vscode` target, set
+  these to try *same-session* resume (`…&session=<id>`) instead of a fresh tab. Capture the id from
+  **`$CLAUDE_CODE_SESSION_ID`** (matches the current transcript filename). Not guaranteed across
+  extension versions; leave unset to use a reliable fresh tab.
+
+### Select & Answer — let the user reply from the doc
+
+Extend the `waiting` block (see above) with **`options`**. Each becomes a clickable button that
+opens/resumes Claude with that choice pre-filled; a free-form "✎ Answer in Claude Code" button is
+always added too. This is the async counterpart to the ⏳ banner — ideal for a second-monitor user.
+
+```json
+{
+  "waiting": {
+    "question": "Which embedding model?",
+    "section": "phase2",
+    "options": [ { "label": "OpenAI text-embedding-3-small" }, { "label": "Cohere embed-v3" } ]
+  }
+}
+```
+
+> **What this is (and isn't):** a deep link can only **open/resume a session with the prompt
+> pre-filled** — the user still presses Enter. It does **not** answer a live `AskUserQuestion`
+> modal in place (a click can't reach into a running turn). The win is the *async* flow: pose the
+> question in `waiting.options`, end your turn; the user clicks later and the session continues.
+
+### Caveats (state these honestly in the plan if relevant)
+
+- Requires **Claude Code v2.1.91+**; the `claude-cli://` handler registers on the first
+  interactive `claude` run (Windows: `HKCU\Software\Classes\claude-cli`).
+- **No fallback by design** — if the scheme isn't registered, a click silently does nothing
+  (there is intentionally no copy-to-clipboard backup).
+- Schemes work from a **local `file://`** page in Chrome (our case) but are **stripped by GitHub's
+  Markdown** — so these buttons are for the opened doc, not for pasting into a README.
+- Prompts are **inert until Enter**; a session shows a "Prompt from an external link" warning.
