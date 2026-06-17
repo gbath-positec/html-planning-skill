@@ -160,8 +160,7 @@ block.** When you do, it's on by default (hero + per-phase buttons appear automa
 {
   "status": { "phase1": "doing" },
   "deepLinks": {
-    "target": "cli",                              // "cli" = terminal (default, widely works); "vscode" = Claude tab
-    "cwd": "C:\\Users\\you\\Desktop\\my-repo",   // absolute working dir (used by "cli" target)
+    "cwd": "C:/Users/you/Desktop/my-repo",        // absolute working dir (forward slashes on Windows)
     "planPath": "Docs/my-plan.html"               // used by the "Continue plan" / answer buttons
   },
   "actions": {
@@ -178,37 +177,26 @@ block.** When you do, it's on by default (hero + per-phase buttons appear automa
   injected into that phase's header.
 - **Waiting banner** — see `waiting.options` below.
 
-**Pick the `target` first — this is the load-bearing choice:**
-- **`"cli"`** (default) → buttons open `claude-cli://open?q=…&cwd=…`, a **terminal** session. This
-  is the broadly-working path. Needs the handler registered (Claude Code **v2.1.91+**, auto-registers
-  on first interactive run). One observed quirk: the handler reliably opens the **first** session,
-  but if a Claude terminal is already open, a *subsequent* click may flash-and-close — close the
-  prior one (or just rely on one button at a time).
-- **`"vscode"`** (experimental) → buttons open `vscode://anthropic.claude-code/open?prompt=…`, a
-  **Claude Code tab** in the current VS Code window (no `cwd` needed). In principle ideal inside the
-  VS Code extension, but **observed inert on at least one setup** where `cli` worked — verify before
-  relying on it. Leave `target` unset/`"cli"` unless you've confirmed `vscode://` opens on the box.
-
-**Then fill the rest:**
-- **`cwd`** (cli target) — the skill runs *inside the repo*, so set the absolute working dir.
-  Prefer it over `repo` (a GitHub slug). The template's `ccUrl()` URL-encodes everything; never
-  hand-encode. **On Windows, write the path with forward slashes (`C:/Users/you/repo`) or
-  double-escaped backslashes (`C:\\Users\\you\\repo`)** — a single-backslash JSON string corrupts
-  the path and the launched terminal can't `cd`, so it flashes shut. Avoid raw double-quotes in
-  prompt text (the template uses parens) — they can break a shell handoff.
+**Filling it in:**
+- **`cwd`** — the skill runs *inside the repo*, so set the absolute working dir. Prefer it over
+  `repo` (a GitHub slug). The template's `ccUrl()` URL-encodes everything; never hand-encode.
+  **On Windows, write the path with forward slashes (`C:/Users/you/repo`) or double-escaped
+  backslashes (`C:\\Users\\you\\repo`)** — a single-backslash JSON string corrupts the path and the
+  launched terminal can't `cd`, so it flashes shut. Avoid raw double-quotes in prompt text (the
+  template uses parens) — they can break a shell handoff.
 - **Prompts (`actions[id].start` / `.verify`)** — capped at **5,000 chars**. For long work don't
   inline it — point Claude at the plan: *"Open the plan at `planPath` and implement Phase 2."*
-- **Select/Answer** open a fresh tab/session whose prompt says "open the plan at `planPath` and
-  continue" so context is reloaded from the doc — works for both targets.
-- **`resume: "vscode"` + `sessionId` (optional, experimental)** — with the `vscode` target, set
-  these to try *same-session* resume (`…&session=<id>`) instead of a fresh tab. Capture the id from
-  **`$CLAUDE_CODE_SESSION_ID`** (matches the current transcript filename). Not guaranteed across
-  extension versions; leave unset to use a reliable fresh tab.
+- **Select/Answer** open a fresh session whose prompt says "open the plan at `planPath` and
+  continue" so context is reloaded from the doc.
+- **Reliability** — needs the `claude-cli://` handler registered (Claude Code **v2.1.91+**,
+  auto-registers on first interactive run) and a working terminal emulator. One observed quirk: the
+  handler reliably opens the **first** session, but if a Claude terminal is already open a
+  *subsequent* click may flash-and-close — close the prior one, or use one button at a time.
 
 ### Select & Answer — let the user reply from the doc
 
 Extend the `waiting` block (see above) with **`options`**. Each becomes a clickable button that
-opens/resumes Claude with that choice pre-filled; a free-form "✎ Answer in Claude Code" button is
+opens a Claude session with that choice pre-filled; a free-form "✎ Answer in Claude Code" button is
 always added too. This is the async counterpart to the ⏳ banner — ideal for a second-monitor user.
 
 ```json
@@ -221,7 +209,7 @@ always added too. This is the async counterpart to the ⏳ banner — ideal for 
 }
 ```
 
-> **What this is (and isn't):** a deep link can only **open/resume a session with the prompt
+> **What this is (and isn't):** a deep link can only **open a session with the prompt
 > pre-filled** — the user still presses Enter. It does **not** answer a live `AskUserQuestion`
 > modal in place (a click can't reach into a running turn). The win is the *async* flow: pose the
 > question in `waiting.options`, end your turn; the user clicks later and the session continues.

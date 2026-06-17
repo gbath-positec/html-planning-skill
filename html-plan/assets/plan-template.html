@@ -303,7 +303,7 @@
   .notify-btn.blocked { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
   .notify-btn[disabled] { opacity: .5; cursor: default; }
 
-  /* ── Deep-link action buttons (claude-cli:// / vscode://) — injected by JS when #plan-state.deepLinks is set ── */
+  /* ── Deep-link action buttons (claude-cli://) — injected by JS when #plan-state.deepLinks is set ── */
   .cc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
   .cc-actions.hero-actions { margin: 18px 0 0; }
   .cc-action { display: inline-flex; align-items: center; gap: 7px; font-family: inherit; font-size: 12.5px; font-weight: 600;
@@ -605,9 +605,8 @@
   function allDone() { return !!ids.length && ids.filter(function (id) { return st(id) === 'done'; }).length >= ids.length; }
 
   // ── Deep-link actions — opt-in. Present only when #plan-state.deepLinks exists. ──
-  //   deepLinks: { cwd, planPath, sessionId? }   actions: { <trackedId>: { start, verify } }
-  //   ccUrl() owns ALL encoding so markup never hand-encodes. Builds claude-cli:// (terminal)
-  //   or vscode://anthropic.claude-code/open (editor tab, the only same-session resume path).
+  //   deepLinks: { cwd, planPath }   actions: { <trackedId>: { start, verify } }
+  //   ccUrl() owns ALL encoding so markup never hand-encodes. Builds claude-cli:// (terminal).
   var deepLinks = (emb && emb.deepLinks && typeof emb.deepLinks === 'object') ? emb.deepLinks : null;
   var actions   = (emb && emb.actions && typeof emb.actions === 'object') ? emb.actions : {};
   var CC_MAX_Q  = 5000;   // claude-cli:// `q` hard limit (chars, decoded)
@@ -620,21 +619,10 @@
       try { console.warn('[plan] deep-link prompt is ' + q.length + ' chars (> ' + CC_MAX_Q + '); truncating. Point at the plan file instead.'); } catch (e) {}
       q = q.slice(0, CC_MAX_Q);
     }
-    if (opts.vscode) {                                   // VS Code editor tab (+ optional same-session resume)
-      add('prompt', q); add('session', opts.session);
-      return 'vscode://anthropic.claude-code/open' + (parts.length ? '?' + parts.join('&') : '');
-    }
     add('q', q); add('cwd', opts.cwd); add('repo', opts.repo);   // cwd wins over repo per spec
     return 'claude-cli://open' + (parts.length ? '?' + parts.join('&') : '');
   }
-  // Pick the handoff scheme per config. target:'vscode' opens a Claude Code TAB inside VS Code —
-  // reliable when running in the VS Code extension. Default ('cli') opens a terminal session via
-  // claude-cli://. Set deepLinks.target='vscode' from a claude-vscode session.
-  function actUrl(q) {
-    return (deepLinks && deepLinks.target === 'vscode')
-      ? ccUrl({ vscode: true, q: q, session: (deepLinks.resume === 'vscode' ? deepLinks.sessionId : null) })
-      : ccUrl({ q: q, cwd: deepLinks && deepLinks.cwd });
-  }
+  function actUrl(q) { return ccUrl({ q: q, cwd: deepLinks && deepLinks.cwd }); }
 
   // ── Render pills / roadmap / ring from embedded state ──
   [].slice.call(document.querySelectorAll('[data-track]')).forEach(function (el) {
@@ -662,9 +650,7 @@
   (function () {
     if (!deepLinks) return;                              // feature off unless #plan-state.deepLinks is set
     var cwd = deepLinks.cwd, planPath = deepLinks.planPath;
-    var openUrl = (deepLinks.target === 'vscode')        // "Open repo": fresh tab vs terminal in cwd
-      ? ccUrl({ vscode: true })
-      : ccUrl({ cwd: cwd, repo: deepLinks.repo });
+    var openUrl = ccUrl({ cwd: cwd, repo: deepLinks.repo });   // "Open repo": terminal in cwd
     var hero = document.querySelector('.hero');          // Hero: Open + Continue plan
     if (hero && !hero.querySelector('.cc-actions')) {
       var row = document.createElement('div'); row.className = 'cc-actions hero-actions';
@@ -703,11 +689,9 @@
 
     // Phase 3 — Select & Answer: when deepLinks is configured, let the user reply FROM the doc.
     //   Each waiting.options[] entry becomes a deep-link button pre-filled with that choice;
-    //   a free-form "Answer" button is always offered. Same-session resume via vscode sessionId
-    //   when present, else a new claude-cli:// session that reloads context from planPath.
+    //   a free-form "Answer" button is always offered. Each opens a fresh claude-cli:// session
+    //   that first reloads context from planPath.
     if (deepLinks && typeof w === 'object' && w) {
-      // Select/Answer use the same scheme chooser (actUrl). In 'cli' mode this opens a fresh
-      // session that first reloads context from the plan file; in 'vscode' mode a Claude tab.
       var planPath = deepLinks.planPath;
       var ctx = planPath ? 'Open the plan at ' + planPath + ' and continue executing it. ' : '';
       var stop = function (e) { e.stopPropagation(); };                     // don't trigger the bar's scroll
