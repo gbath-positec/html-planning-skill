@@ -145,5 +145,5 @@ The template ships these for whoever opens the plan; they persist across the 4s 
 - **🔔 Notify me** (sidebar) — opt-in desktop notification + soft chime when you set `waiting`
   or the plan hits 100%. Requires a one-time permission click; falls back to the banner + tab
   title if the browser blocks notifications (e.g. on the `file://` origin).
-- **Collapse** chevrons per phase, a **To do / Doing / Done filter**, and **j / k** keyboard
-  jump — all for navigating large plans.
+- **Collapse** chevrons per phase, a **To do / Doing / Done filter**, **j / k** keyboard jump,
+  and a right-edge **mini-map** of section status — all for navigating large plans.

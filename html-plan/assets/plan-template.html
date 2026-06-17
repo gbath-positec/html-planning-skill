@@ -341,9 +341,23 @@
   .timeline .tl-t { font-family: ui-monospace, monospace; font-size: 11px; color: var(--faint); margin-right: 9px; }
   .timeline .tl-x { color: var(--text); }
 
+  /* ── Mini-map (right edge) ── */
+  .minimap { position: fixed; right: 10px; top: 50%; transform: translateY(-50%); z-index: 4;
+    display: flex; flex-direction: column; gap: 7px; padding: 9px 6px; border-radius: 999px;
+    background: color-mix(in srgb, var(--panel) 55%, transparent); border: 1px solid var(--border-soft);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .mm-dot { position: relative; width: 9px; height: 9px; border-radius: 50%; cursor: pointer; background: var(--border);
+    border: 1px solid transparent; transition: transform .15s, box-shadow .15s; }
+  .mm-dot[data-st="doing"] { background: var(--amber); }
+  .mm-dot[data-st="done"] { background: var(--green); }
+  .mm-dot.active { border-color: var(--accent); transform: scale(1.3); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent); }
+  .mm-dot:hover::after { content: attr(data-label); position: absolute; right: 17px; top: 50%; transform: translateY(-50%); white-space: nowrap;
+    font-size: 11px; padding: 3px 9px; border-radius: 6px; background: var(--panel); border: 1px solid var(--border-soft); color: var(--text); box-shadow: var(--shadow); }
+  @media (max-width: 940px) { .minimap { display: none; } }
+
   @media (prefers-reduced-motion: reduce) {
     .status, .rm-num, .card, .hero, .roadmap, .live-badge .live-dot::after, .await-bar, .await-bar .wd::after { animation: none !important; }
-    .subprog .subbar > i, .chev { transition: none !important; }
+    .subprog .subbar > i, .chev, .mm-dot { transition: none !important; }
     .confetti-cv { display: none; }
   }
 
@@ -397,6 +411,8 @@
   <span class="wq"><b>Waiting for your input</b> <span class="qt" id="await-text"></span></span>
 </div>
 
+<!-- Mini-map — built by JS from tracked sections; click a dot to jump (hidden on mobile) -->
+<div class="minimap" id="minimap" aria-hidden="true"></div>
 
 <div class="shell">
 
@@ -815,11 +831,12 @@
 
   })();
 
-  // ── Navigation: collapsible phases, status filter, keyboard jump ──
+  // ── Navigation: collapsible phases, status filter, mini-map, keyboard jump ──
   // NOTE: the page hard-reloads every RELOAD_MS, so each control persists its state and
   // re-applies it on load — otherwise it would reset every few seconds.
   var KCOLLAPSE = TKEY.replace('-theme', '-collapsed');  // localStorage: collapsed section ids
   var KFILTER = TKEY.replace('-theme', '-filter');       // sessionStorage: active status filter
+  var mmDots = {};
 
   // Collapsible phases — inject a chevron into each phase .sec-head
   (function () {
@@ -841,6 +858,21 @@
     });
   })();
 
+  // Mini-map — one dot per tracked section, colored by status, click to jump.
+  // Built BEFORE the filter so the filter's initial apply() can hide matching dots too.
+  (function () {
+    var mm = document.getElementById('minimap'); if (!mm) return;
+    ids.forEach(function (id) {
+      var sec = document.getElementById(id); if (!sec) return;
+      var h2 = sec.querySelector('h2');
+      var label = (h2 ? h2.textContent : id).replace(/\s+—.*$/, '').trim();
+      var dot = document.createElement('span');
+      dot.className = 'mm-dot'; dot.setAttribute('data-track', id); dot.setAttribute('data-st', st(id)); dot.setAttribute('data-label', label);
+      dot.addEventListener('click', function () { _focusSection(id); });
+      mm.appendChild(dot); mmDots[id] = dot;
+    });
+  })();
+
   // Status filter — show only matching tracked phase sections (reference sections always show)
   (function () {
     var bar = document.getElementById('filterbar'); if (!bar) return;
@@ -848,6 +880,7 @@
     function apply(f) {
       ids.forEach(function (id) {
         var sec = document.getElementById(id); if (sec) sec.style.display = (f === 'all' || st(id) === f) ? '' : 'none';
+        if (mmDots[id]) mmDots[id].style.display = (f === 'all' || st(id) === f) ? '' : 'none';
       });
       [].slice.call(bar.querySelectorAll('button')).forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-filter') === f); });
     }
@@ -873,7 +906,7 @@
     });
   })();
 
-  // ── Scroll-spy ──
+  // ── Scroll-spy (also lights the matching mini-map dot) ──
   var links = {};
   document.querySelectorAll('nav.toc a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
   var spy = new IntersectionObserver(function (entries) {
@@ -881,6 +914,8 @@
       if (en.isIntersecting) {
         Object.values(links).forEach(function (a) { a.classList.remove('active'); });
         var a = links[en.target.id]; if (a) a.classList.add('active');
+        Object.keys(mmDots).forEach(function (k) { mmDots[k].classList.remove('active'); });
+        if (mmDots[en.target.id]) mmDots[en.target.id].classList.add('active');
       }
     });
   }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
