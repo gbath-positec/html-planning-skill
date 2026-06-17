@@ -33,17 +33,17 @@ This **complements** the plan-mode markdown plan file — it does not replace it
 
 4. **Save** to the repo's `Docs/` folder (create it if missing) as `Docs/<kebab-title>-plan.html`. If there is no `Docs/` folder and no obvious docs location, save to the repo root.
 
-5. **Open in Chrome — and VERIFY it actually surfaced.** This workspace is Windows. Do NOT use `cmd /c start chrome <url>` — when Chrome is already running it hands the URL to the existing instance and often lands as an **unfocused background tab** (looks like nothing happened). Use the **PowerShell tool** with `Start-Process` + `--new-window`, which spawns a fresh, surfaced window and is verifiable:
+5. **Open in Chrome — dedicated "plans" window, new tab — and VERIFY it actually surfaced.** This workspace is Windows. All plans open in a **dedicated Chrome instance** pinned to its own profile directory, so every plan lands in the same window: the first plan of a session opens that window, each later plan opens as a **new tab** in it, and it never mixes into your regular browsing windows. Use the **PowerShell tool** with `Start-Process chrome` + a fixed `--user-data-dir`. Do NOT use `cmd /c start chrome <url>`.
    ```powershell
    $url = "file:///<ABSOLUTE/forward-slash/path>.html"
-   $before = (Get-Process chrome -ErrorAction SilentlyContinue).Count
-   Start-Process chrome -ArgumentList '--new-window', $url
+   $planProfile = "$env:USERPROFILE\.plan-chrome"   # dedicated profile dir for plans (reused across plans)
+   Start-Process chrome -ArgumentList "--user-data-dir=$planProfile", $url
    Start-Sleep -Seconds 2
    $p = Get-Process chrome -ErrorAction SilentlyContinue
-   "procs before=$before after=$($p.Count)"
+   "chrome running=$([bool]$p)"
    $p | Where-Object { $_.MainWindowTitle -like '*<DISTINCTIVE WORD FROM <title>>*' } | Select-Object -ExpandProperty MainWindowTitle
    ```
-   **Confirm it opened** by checking the process count went up AND/OR a window title matching the doc's `<title>` appears. If neither, report that — don't claim success on exit code alone. (If Chrome isn't installed, fall back to `Start-Process $url` for the default browser. macOS: `open -a "Google Chrome" <path>`; Linux: `google-chrome --new-window <path>`.)
+   **Confirm it opened** by checking a window title matching the doc's `<title>` appears. Note: only the **first** plan of a session starts a new chrome process for this profile; later plans open as tabs in that same window, so the process count won't keep rising — that's expected, not a failure. The plans profile is intentionally separate from your normal Chrome (its own extensions/logins/history). If no matching window/process appears at all afterward, report that — don't claim success on exit code alone. (If Chrome isn't installed, fall back to `Start-Process $url` for the default browser. macOS: `open -na "Google Chrome" --args --user-data-dir="$HOME/.plan-chrome" <path>`; Linux: `google-chrome --user-data-dir="$HOME/.plan-chrome" <path>`.)
 
 6. **Tell the user** the file path, that it's been opened (with the verification result), and that it auto-refreshes every ~4s as you update progress.
 
@@ -90,9 +90,10 @@ page displays it. There is no clicking, no localStorage status, no reconciliatio
   tab reflects it within a few seconds with no manual refresh. This always runs; there is no
   on/off control. To change the cadence, edit `RELOAD_MS`; to make a delivered plan fully
   static, delete the `setInterval` auto-refresh block.
-- **On first open** (and the first time a section is in progress) the page smooth-scrolls once to
-  the `"doing"` section so the reader lands on the current work; after that it preserves their
-  scroll position on every refresh.
+- **Auto-scroll follows the work:** the page smooth-scrolls to the `"doing"` section once each
+  time the in-progress section *changes* (first open, or when one section finishes and the next
+  starts). On ordinary refreshes (same section still in progress) it stays put and preserves the
+  reader's scroll position.
 
 ### Signalling "waiting for your input"
 
@@ -114,3 +115,35 @@ you need them:
 - Shorthand: `"waiting": "your question here"` also works (no section link).
 - **Clear it the moment they answer** — set `"waiting": null` or remove the key. Leaving it set
   makes the plan look perpetually blocked.
+
+### Granular progress — optional `#plan-state` fields
+
+All optional and back-compatible; omit any you don't use and the plan renders as normal.
+
+```jsonc
+{
+  "status": { "phase1": "done", "phase3": "doing" },
+  "steps":  { "phase1": 4, "phase3": 2 },                                   // sub-task progress
+  "times":  { "phase1": { "start": "09:12", "end": "10:48" } },             // per-phase timing
+  "log":    [ { "t": "10:48", "text": "Phase 1 done — auth live" } ]        // activity feed
+}
+```
+
+- **`steps`** — sub-task progress for a phase. Mark that phase's primary list with
+  `data-steps="<id>"` (e.g. `<ol class="steps" data-steps="phase1">`). The value is either a
+  **number** (first N `<li>` are done) or an **array of 0-based indices** (`[0,2]`). Done items
+  get a ✓ and dim; a `n / total` sub-bar appears in the phase header (`total` = list length).
+- **`times`** — optional per-phase `{ start, end }` time strings shown as a muted line under the
+  phase title. You supply the strings (the page can't know wall-clock for past events).
+- **`log`** — an array of `{ t, text }` entries rendered as a timeline in the `#activity`
+  reference section (which **self-hides when the log is empty**). Append an entry as you finish
+  notable work. Keep the standard `#activity` section in the body — it's wired automatically.
+
+### Viewer controls (no authoring needed)
+
+The template ships these for whoever opens the plan; they persist across the 4s refresh:
+- **🔔 Notify me** (sidebar) — opt-in desktop notification + soft chime when you set `waiting`
+  or the plan hits 100%. Requires a one-time permission click; falls back to the banner + tab
+  title if the browser blocks notifications (e.g. on the `file://` origin).
+- **Collapse** chevrons per phase, a **To do / Doing / Done filter**, and **j / k** keyboard
+  jump — all for navigating large plans.
