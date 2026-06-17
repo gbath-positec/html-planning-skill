@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<!--
+  HTML PLAN TEMPLATE
+  ------------------
+  Fill in the CONTENT only. Do NOT rewrite the <style> or <script> blocks.
+
+  Wiring rules (keep these consistent or the tracker breaks):
+   • Each TRACKED build section needs a stable id, e.g. id="phase2".
+   • That id must appear as data-track="<id>" in THREE places:
+       1) the sidebar nav link,  2) the roadmap node,  3) the section's .status pill.
+   • List every tracked id in the script's `ids = [...]` array (bottom of file).
+   • Reference sections (context, critical files, verification, deferred) use
+     class="card plain" and have NO status pill / no data-track.
+
+  Component cheatsheet (all defined in <style>):
+   • <section class="card phase">         tracked build section (violet accent)
+   • <section class="card phase" data-accent="green|blue">   recolor the left accent
+   • <section class="card plain">          reference section
+   • <div class="callout [warn|ok]">       highlighted note
+
+  Diagrams — REACH FOR THESE OFTEN (a diagram beats a paragraph for flows, models,
+  sequences, choices, hierarchies). All live inside <div class="diagram"> with a .dg-title:
+   • .flow     horizontal pipeline of .node boxes joined by .arrow (→); .node.q / .node.hl /
+               .node.ans tint cyan / accent / green. Use for data flow, request lifecycle, q→answer.
+   • .schema   record/table mock: .row > .col-name / .col-type / .col-note. Use for data models.
+   • .tree     file tree / decomposition; author with ├─ └─ │ + indent; <span class="dir">,
+               <span class="nm">, <small> color dirs / files / notes.
+  Standalone (no .diagram wrapper needed):
+   • <ol class="steps">  numbered vertical procedure with a connecting rail (ordered steps).
+   • <div class="compare"> > div.good / .bad / .pick (each with a .ct label)  side-by-side
+               comparison cards (before/after, option A vs B, trade-offs).
+   • <table>, <ul>, <ol>, <code>, .pill, .chip, .legend
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<script>try{var _t=localStorage.getItem('{{KEBAB_TITLE}}-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --bg-grid: rgba(120,140,180,.045);
+    --panel: #14171f;
+    --panel-2: #1a1e28;
+    --border: #272c38;
+    --border-soft: #1f2430;
+    --text: #e8ebf2;
+    --muted: #98a2b6;
+    --faint: #6b7488;
+    --accent: #56b6ff;
+    --accent-2: #8b7bff;
+    --cyan: #34d3c4;
+    --green: #45c463;
+    --amber: #e0a93b;
+    --code-bg: #0e1016;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.25);
+  }
+  html[data-theme="light"] {
+    --bg: #f5f6f9;
+    --bg-grid: rgba(40,60,100,.04);
+    --panel: #ffffff;
+    --panel-2: #f0f2f6;
+    --border: #dde1e9;
+    --border-soft: #e7eaf0;
+    --text: #1a1e28;
+    --muted: #5a6478;
+    --faint: #8b93a4;
+    --accent: #1f7fd6;
+    --accent-2: #6b54e6;
+    --cyan: #129f92;
+    --green: #2e9e4a;
+    --amber: #b9801b;
+    --code-bg: #f0f2f6;
+    --shadow: 0 1px 2px rgba(20,30,60,.06), 0 8px 24px rgba(20,30,60,.06);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0 / 100% 32px,
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0 / 32px 100%,
+      var(--bg);
+    color: var(--text);
+    font: 15.5px/1.65 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .85em; background: var(--code-bg); border: 1px solid var(--border-soft);
+    padding: 1px 6px; border-radius: 5px; color: var(--text);
+  }
+  strong { color: var(--text); font-weight: 650; }
+  em { color: var(--muted); font-style: italic; }
+
+  .shell { display: grid; grid-template-columns: 264px minmax(0, 1fr); max-width: 1220px; margin: 0 auto; }
+  .sidebar {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 28px 20px 40px; border-right: 1px solid var(--border-soft);
+  }
+  .main { padding: 36px 44px 120px; min-width: 0; }
+  @media (max-width: 940px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border-soft); }
+    .main { padding: 28px 22px 80px; }
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+  .brand b { font-size: 14px; letter-spacing: .2px; }
+  .brand-sub { font-size: 11.5px; color: var(--faint); font-family: ui-monospace, monospace; margin: 0 0 22px 19px; }
+
+  .ring-wrap { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 18px;
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 12px; }
+  .ring { --pct: 0; position: relative; width: 46px; height: 46px; border-radius: 50%; flex: none;
+    background: conic-gradient(var(--green) calc(var(--pct) * 1%), var(--panel-2) 0);
+    display: grid; place-items: center; }
+  .ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--panel); }
+  .ring span { position: relative; z-index: 1; font-size: 11px; font-weight: 700; }
+  .ring-meta { font-size: 12px; line-height: 1.35; }
+  .ring-meta b { display: block; font-size: 13px; }
+  .ring-meta span { color: var(--muted); }
+
+  nav.toc { display: flex; flex-direction: column; gap: 1px; }
+  nav.toc a {
+    color: var(--muted); font-size: 13px; padding: 6px 10px; border-radius: 7px;
+    display: flex; align-items: center; gap: 8px; border-left: 2px solid transparent; transition: all .12s;
+  }
+  nav.toc a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
+  nav.toc a.active { color: var(--text); background: var(--panel); border-left-color: var(--accent); font-weight: 600; }
+  nav.toc a .mk { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex: none; }
+  nav.toc a[data-st="doing"] .mk { background: var(--amber); }
+  nav.toc a[data-st="done"] .mk { background: var(--green); }
+  .toc-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); margin: 18px 0 6px 10px; }
+
+  .theme-btn {
+    margin-top: 22px; width: 100%; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px; transition: all .12s;
+  }
+  .theme-btn:hover { color: var(--text); border-color: var(--border); }
+
+  .hero { margin-bottom: 28px; }
+  .eyebrow { font-family: ui-monospace, monospace; font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); }
+  .hero h1 { font-size: 34px; line-height: 1.1; letter-spacing: -.6px; margin: 10px 0 12px; font-weight: 700; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 60ch; margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .chip { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border-soft); padding: 5px 11px; border-radius: 999px; }
+  .chip b { color: var(--text); }
+
+  .roadmap { display: flex; gap: 0; margin: 28px 0 8px; padding: 4px; background: var(--panel);
+    border: 1px solid var(--border-soft); border-radius: 14px; overflow-x: auto; }
+  .rm-node { flex: 1 1 0; min-width: 92px; text-align: center; padding: 12px 8px; border-radius: 10px;
+    cursor: pointer; position: relative; transition: background .12s; }
+  .rm-node:hover { background: var(--panel-2); text-decoration: none; }
+  .rm-num { width: 30px; height: 30px; margin: 0 auto 7px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 13px; font-weight: 700; font-family: ui-monospace, monospace;
+    background: var(--panel-2); color: var(--faint); border: 1.5px solid var(--border); transition: all .15s; }
+  .rm-node[data-st="doing"] .rm-num { color: var(--amber); border-color: var(--amber); box-shadow: 0 0 0 3px rgba(224,169,59,.12); }
+  .rm-node[data-st="done"] .rm-num { color: #fff; background: var(--green); border-color: var(--green); }
+  .rm-label { font-size: 11px; color: var(--muted); line-height: 1.25; }
+
+  section { scroll-margin-top: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 16px;
+    padding: 26px 30px; margin: 16px 0; box-shadow: var(--shadow); }
+  .card.phase { border-left: 3px solid var(--accent-2); }
+  .card.phase[data-accent="green"] { border-left-color: var(--cyan); }
+  .card.phase[data-accent="blue"] { border-left-color: var(--accent); }
+  .card.deferred { border-left-color: var(--amber); }
+
+  .sec-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
+  .sec-head .titles { min-width: 0; }
+  .sec-kicker { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+  h2 { font-size: 23px; letter-spacing: -.3px; margin: 4px 0 0; font-weight: 700; }
+  h2 .muted-tail { font-size: 14px; color: var(--faint); font-weight: 400; }
+  h3 { font-size: 14px; color: var(--accent); margin: 22px 0 8px; letter-spacing: .01em; }
+  .plain h2 { padding-bottom: 10px; border-bottom: 1px solid var(--border-soft); margin-bottom: 10px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0; padding-left: 20px; }
+  li { margin: 6px 0; }
+  li::marker { color: var(--faint); }
+
+  .status { flex: none; font-family: inherit; font-size: 11.5px; font-weight: 650; line-height: 1;
+    padding: 8px 14px; border-radius: 999px; user-select: none; white-space: nowrap;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); transition: all .14s; }
+  .status::before { content: "○ "; }
+  .status[data-state="doing"] { color: var(--amber); border-color: rgba(224,169,59,.5); background: rgba(224,169,59,.13); }
+  .status[data-state="doing"]::before { content: "◐ "; }
+  .status[data-state="done"] { color: var(--green); border-color: rgba(69,196,99,.5); background: rgba(69,196,99,.14); }
+  .status[data-state="done"]::before { content: "✓ "; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px;
+    background: var(--panel-2); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 13px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+  th { background: color-mix(in srgb, var(--panel-2) 70%, var(--border)); color: var(--text);
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+  td:first-child { color: var(--accent); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+
+  .callout { border-radius: 10px; padding: 13px 17px; margin: 16px 0; font-size: 14px;
+    background: color-mix(in srgb, var(--accent) 9%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); border-left-width: 3px; }
+  .callout.warn { background: color-mix(in srgb, var(--amber) 10%, var(--panel)); border-color: color-mix(in srgb, var(--amber) 32%, transparent); }
+  .callout.ok { background: color-mix(in srgb, var(--green) 10%, var(--panel)); border-color: color-mix(in srgb, var(--green) 32%, transparent); }
+
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+  .pill.defer { background: rgba(224,169,59,.14); color: var(--amber); border: 1px solid rgba(224,169,59,.4); }
+
+  .diagram { background: var(--code-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 22px; margin: 16px 0; }
+  .dg-title { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-bottom: 16px; }
+  .flow { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; }
+  .flow .col { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+  .node { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; font-size: 12.5px; min-width: 116px; }
+  .node b { display: block; font-size: 12.5px; }
+  .node small { color: var(--faint); font-size: 10.5px; font-family: ui-monospace, monospace; }
+  .node.hl { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .node.q { border-color: var(--cyan); }
+  .node.ans { border-color: var(--green); }
+  .arrow { align-self: center; color: var(--faint); font-size: 18px; }
+
+  .schema { font-family: ui-monospace, monospace; font-size: 12.5px; }
+  .schema .row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--border-soft); }
+  .schema .row:last-child { border-bottom: none; }
+  .schema .col-name { color: var(--accent); min-width: 150px; }
+  .schema .col-type { color: var(--cyan); min-width: 130px; }
+  .schema .col-note { color: var(--faint); }
+
+  /* sequence — numbered vertical steps with a connecting rail (procedures, ordered work) */
+  .steps { list-style: none; margin: 10px 0; padding: 0; counter-reset: step; }
+  .steps li { position: relative; padding: 0 0 16px 40px; }
+  .steps li::before { content: counter(step); counter-increment: step; position: absolute; left: 0; top: -2px;
+    width: 25px; height: 25px; border-radius: 50%; display: grid; place-items: center; font-family: ui-monospace, monospace;
+    font-size: 12px; font-weight: 700; color: var(--accent); background: var(--panel-2); border: 1.5px solid var(--border); }
+  .steps li::after { content: ""; position: absolute; left: 11.5px; top: 25px; bottom: -2px; width: 1.5px; background: var(--border-soft); }
+  .steps li:last-child { padding-bottom: 0; }
+  .steps li:last-child::after { display: none; }
+  .steps li b { color: var(--text); }
+
+  /* comparison — side-by-side cards (before/after, option A vs B, trade-offs) */
+  .compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
+  .compare > div { background: var(--panel); border: 1px solid var(--border-soft); border-top: 2px solid var(--border); border-radius: 11px; padding: 13px 16px; }
+  .compare .ct { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin-bottom: 8px; }
+  .compare > .good { border-top-color: var(--green); }
+  .compare > .bad  { border-top-color: var(--amber); }
+  .compare > .pick { border-top-color: var(--accent); }
+  .compare ul { margin: 0; padding-left: 16px; font-size: 13px; }
+  .compare li { margin: 4px 0; }
+
+  /* hierarchy — file tree / decomposition (author with ├─ └─ │ and indentation) */
+  .tree { font-family: ui-monospace, monospace; font-size: 12.5px; line-height: 1.75; white-space: pre; color: var(--muted); overflow-x: auto; }
+  .tree .dir { color: var(--cyan); }
+  .tree .nm { color: var(--accent); }
+  .tree small { color: var(--faint); font-family: ui-monospace, monospace; }
+
+  hr { border: none; border-top: 1px solid var(--border-soft); margin: 30px 0; }
+  footer { color: var(--faint); font-size: 12.5px; margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--border-soft); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  /* ── Theatrical animations ── */
+  @keyframes plan-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  @keyframes pop-done { 0% { transform: scale(1); } 35% { transform: scale(1.16); } 70% { transform: scale(.97); } 100% { transform: scale(1); } }
+  @keyframes glow-done { 0% { box-shadow: 0 0 0 0 rgba(69,196,99,.55); } 100% { box-shadow: 0 0 0 16px rgba(69,196,99,0); } }
+  @keyframes breathe-amber { 0%,100% { box-shadow: 0 0 0 0 rgba(224,169,59,0); } 50% { box-shadow: 0 0 0 6px rgba(224,169,59,.16); } }
+  @keyframes live-ping { 0% { transform: scale(1); opacity: .85; } 70% { transform: scale(2.8); opacity: 0; } 100% { opacity: 0; } }
+  .confetti-cv { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
+  .status.celebrate-done { animation: pop-done .6s ease, glow-done 1s ease .05s; }
+  .rm-node.celebrate-done .rm-num { animation: pop-done .6s ease, glow-done 1s ease .05s; }
+  .status.celebrate-doing { animation: pop-done .5s ease; }
+  .status.is-breathing { animation: breathe-amber 2.4s ease-in-out infinite; }
+  .rm-node.is-breathing .rm-num { animation: breathe-amber 2.4s ease-in-out infinite; }
+  .live-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: .14em; color: var(--green); font-family: ui-monospace, monospace; }
+  .live-badge .live-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .live-badge .live-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--green); animation: live-ping 1.6s ease-out infinite; }
+
+  /* "Waiting for your input" banner — shown when #plan-state has a `waiting` field set */
+  .await-bar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 50;
+    display: none; align-items: center; gap: 11px; max-width: min(760px, 92vw);
+    padding: 10px 18px; border-radius: 999px; text-align: left;
+    background: color-mix(in srgb, var(--amber) 18%, var(--panel));
+    border: 1px solid color-mix(in srgb, var(--amber) 55%, transparent);
+    box-shadow: 0 8px 28px rgba(0,0,0,.4); color: var(--text); font-size: 13.5px; line-height: 1.4;
+    backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    animation: await-pulse 2.2s ease-in-out infinite; }
+  .await-bar.on { display: flex; }
+  .await-bar.clickable { cursor: pointer; }
+  .await-bar.clickable:hover { border-color: var(--amber); }
+  .await-bar .wd { position: relative; width: 9px; height: 9px; border-radius: 50%; background: var(--amber); flex: none; box-shadow: 0 0 10px var(--amber); }
+  .await-bar .wd::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--amber); animation: live-ping 1.6s ease-out infinite; }
+  .await-bar b { color: var(--amber); font-weight: 700; }
+  .await-bar .qt { color: var(--muted); }
+  @keyframes await-pulse { 0%,100% { box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 0 rgba(224,169,59,0); } 50% { box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 7px rgba(224,169,59,.16); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status, .rm-num, .card, .hero, .roadmap, .live-badge .live-dot::after, .await-bar, .await-bar .wd::after { animation: none !important; }
+    .confetti-cv { display: none; }
+  }
+
+  /* ── Futuristic: background, glass, spotlight, HUD ── */
+  .bgfx { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .bgfx::before, .bgfx::after { content: ""; position: absolute; border-radius: 50%; filter: blur(85px); opacity: .5; mix-blend-mode: screen; }
+  .bgfx::before { width: 60vw; height: 60vw; left: -12vw; top: -22vh; background: radial-gradient(circle, rgba(139,123,255,.55), transparent 60%); animation: aurora-a 26s ease-in-out infinite; }
+  .bgfx::after  { width: 55vw; height: 55vw; right: -16vw; bottom: -26vh; background: radial-gradient(circle, rgba(52,211,196,.45), transparent 60%); animation: aurora-b 32s ease-in-out infinite; }
+  @keyframes aurora-a { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8vw,6vh) scale(1.15); } }
+  @keyframes aurora-b { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7vw,-5vh) scale(1.1); } }
+  #stars { position: absolute; inset: 0; display: block; }
+  html[data-theme="light"] .bgfx { opacity: .55; }
+  html[data-theme="light"] .bgfx::before { background: radial-gradient(circle, rgba(107,84,230,.32), transparent 60%); }
+  html[data-theme="light"] .bgfx::after  { background: radial-gradient(circle, rgba(18,159,146,.28), transparent 60%); }
+
+  .shell { position: relative; z-index: 1; }
+  .card { background: color-mix(in srgb, var(--panel) 72%, transparent); backdrop-filter: blur(14px) saturate(1.25); -webkit-backdrop-filter: blur(14px) saturate(1.25); }
+  .sidebar { backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1); background: color-mix(in srgb, var(--bg) 35%, transparent); }
+
+  .spotlight { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .5s; mix-blend-mode: screen;
+    background: radial-gradient(240px circle at var(--mx,-200px) var(--my,-200px), color-mix(in srgb, var(--accent) 22%, transparent), transparent 72%); }
+  .spotlight.on { opacity: 1; }
+
+  .hero h1 { background: linear-gradient(100deg, var(--text) 22%, var(--cyan) 42%, var(--accent-2) 56%, var(--text) 74%); background-size: 220% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: title-sheen 7.5s linear infinite; }
+  @keyframes title-sheen { to { background-position: 220% center; } }
+
+  .hud { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+  .hud span { position: absolute; width: 24px; height: 24px; border: 1.5px solid color-mix(in srgb, var(--cyan) 55%, transparent); opacity: .45; }
+  .hud span:nth-child(1) { top: 14px; left: 14px; border-right: none; border-bottom: none; }
+  .hud span:nth-child(2) { top: 14px; right: 14px; border-left: none; border-bottom: none; }
+  .hud span:nth-child(3) { bottom: 14px; left: 14px; border-right: none; border-top: none; }
+  .hud span:nth-child(4) { bottom: 14px; right: 14px; border-left: none; border-top: none; }
+
+  @keyframes ring-surge { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan) 70%, transparent); } 100% { box-shadow: 0 0 0 20px transparent; } }
+  .ring.surge { animation: ring-surge 1s ease-out; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bgfx::before, .bgfx::after, .hero h1, .ring.surge { animation: none !important; }
+    .spotlight { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="bgfx"><canvas id="stars"></canvas></div>
+<div class="spotlight"></div>
+<div class="hud"><span></span><span></span><span></span><span></span></div>
+
+<!-- "Waiting for your input" banner — populated from #plan-state `waiting` when set -->
+<div class="await-bar" id="await-bar" role="status" title="Jump to the section in question">
+  <span class="wd"></span>
+  <span class="wq"><b>Waiting for your input</b> <span class="qt" id="await-text"></span></span>
+</div>
+
+<div class="shell">
+
+  <!-- ───────── Sidebar ───────── -->
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span><b>{{SHORT_TITLE}}</b></div>
+    <div class="brand-sub">{{SUBTAG e.g. ⎇ branch-name}}</div>
+
+    <div class="ring-wrap">
+      <div class="ring" id="ring"><span id="ring-pct">0%</span></div>
+      <div class="ring-meta"><b id="ring-count">0 / N</b><span>build sections done</span></div>
+    </div>
+
+    <div class="toc-label">Plan</div>
+    <nav class="toc" id="toc">
+      <!-- One link per TRACKED section. data-track must match the section id + pill. -->
+      <a href="#sectionA" data-track="sectionA"><span class="mk"></span>Section A</a>
+      <!-- ...more tracked links... -->
+    </nav>
+    <div class="toc-label">Reference</div>
+    <nav class="toc">
+      <!-- Non-tracked links: leave .mk transparent, no data-track. -->
+      <a href="#critical"><span class="mk" style="background:transparent"></span>Critical files</a>
+      <a href="#verify"><span class="mk" style="background:transparent"></span>Verification</a>
+    </nav>
+
+    <button class="theme-btn" id="theme-btn">◐ Toggle light / dark</button>
+  </aside>
+
+  <!-- ───────── Main ───────── -->
+  <main class="main">
+
+    <header class="hero">
+      <div class="eyebrow">{{EYEBROW e.g. Implementation Plan}}</div>
+      <h1>{{TITLE}}</h1>
+      <p>{{SUBTITLE — one or two sentences}}</p>
+      <div class="chips">
+        <span class="chip">{{✦ highlight}}</span>
+        <!-- a few key facts as chips -->
+      </div>
+    </header>
+
+    <!-- Roadmap: one node per tracked section, data-track must match. -->
+    <div class="roadmap" id="roadmap">
+      <a class="rm-node" href="#sectionA" data-track="sectionA"><div class="rm-num">1</div><div class="rm-label">Section A</div></a>
+      <!-- ...more nodes... -->
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--border)"></i> To do</span>
+      <span><i style="background:var(--amber)"></i> In progress</span>
+      <span><i style="background:var(--green)"></i> Done</span>
+      <span style="color:var(--faint)">— status reflects implementation progress; roadmap &amp; sidebar mirror it</span>
+    </div>
+
+    <!-- ───────── Example TRACKED section ───────── -->
+    <section id="sectionA" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">{{KICKER e.g. Phase 1 · Foundation}}</div>
+          <h2>{{Section title}} <span class="muted-tail">— optional subtitle</span></h2>
+        </div>
+        <button class="status" data-track="sectionA">To do</button>
+      </div>
+      <p>{{Body…}}</p>
+      <!-- Use <ul>, <table>, <div class="callout">, <div class="diagram"> as needed. -->
+    </section>
+
+    <!-- Optional flow diagram pattern:
+    <div class="diagram">
+      <div class="dg-title">Title</div>
+      <div class="flow">
+        <div class="col"><div class="node q"><b>Input</b><small>note</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node hl"><b>Step</b><small>note</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node ans"><b>Output</b><small>note</small></div></div>
+      </div>
+    </div>
+    -->
+
+    <!-- Optional schema/table-model pattern:
+    <div class="diagram">
+      <div class="dg-title">table_name</div>
+      <div class="schema">
+        <div class="row"><span class="col-name">column</span><span class="col-type">type</span><span class="col-note">note</span></div>
+      </div>
+    </div>
+    -->
+
+    <!-- Optional numbered-steps pattern (procedures / ordered work):
+    <ol class="steps">
+      <li><b>Step title.</b> What happens, files touched, etc.</li>
+      <li><b>Next step.</b> …</li>
+    </ol>
+    -->
+
+    <!-- Optional comparison pattern (before/after, option A vs B, trade-offs):
+    <div class="compare">
+      <div class="bad"><div class="ct">Before</div><ul><li>…</li></ul></div>
+      <div class="good"><div class="ct">After</div><ul><li>…</li></ul></div>
+    </div>
+    (use .pick to highlight a chosen option)
+    -->
+
+    <!-- Optional tree pattern (file structure / decomposition):
+    <div class="diagram">
+      <div class="dg-title">repo layout</div>
+      <div class="tree"><span class="dir">lib/</span>
+├─ <span class="nm">search.ts</span>      <small>pgvector similarity</small>
+├─ <span class="dir">tools/</span>
+│  └─ <span class="nm">index.ts</span>    <small>tool registry</small>
+└─ <span class="nm">prisma.ts</span></div>
+    </div>
+    -->
+
+    <!-- ───────── Example REFERENCE sections (no tracking) ───────── -->
+    <section id="critical" class="card plain">
+      <div class="sec-kicker">Map</div>
+      <h2>Critical files</h2>
+      <ul><li>…</li></ul>
+    </section>
+
+    <section id="verify" class="card plain">
+      <div class="sec-kicker">Proof</div>
+      <h2>Verification</h2>
+      <ul><li>…</li></ul>
+    </section>
+
+    <footer>{{TITLE}}</footer>
+
+  </main>
+</div>
+
+<!-- ───────── Progress state — the SINGLE source of truth (Claude edits THIS block) ─────────
+     • Set each tracked id to "todo" | "doing" | "done". Keys MUST match the `ids` array.
+     • The page auto-refreshes every few seconds, so edits here show up on their own. -->
+<script id="plan-state" type="application/json">
+{ "status": {} }
+</script>
+
+<script>
+(function () {
+  // ── Config ──
+  var TKEY = '{{KEBAB_TITLE}}-theme';     // localStorage: theme preference
+  var SKEY = '{{KEBAB_TITLE}}-scroll';    // sessionStorage: scroll Y across reload
+  var ids = ['sectionA' /*, 'sectionB', ... */]; // EXACTLY the tracked section ids
+  var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
+  var RELOAD_MS = 4000;
+
+  // ── Read embedded state — the SINGLE source of truth (Claude edits #plan-state) ──
+  var emb = null;
+  try { var rawEl = document.getElementById('plan-state'); if (rawEl) emb = JSON.parse(rawEl.textContent); }
+  catch (e) { emb = null; }
+  var status  = (emb && emb.status && typeof emb.status === 'object') ? emb.status : {};
+  function st(id) { return status[id] || 'todo'; }
+  function allDone() { return !!ids.length && ids.filter(function (id) { return st(id) === 'done'; }).length >= ids.length; }
+
+  // ── Render pills / roadmap / ring from embedded state ──
+  [].slice.call(document.querySelectorAll('[data-track]')).forEach(function (el) {
+    var s = st(el.dataset.track);
+    el.setAttribute('data-st', s);
+    if (el.classList.contains('status')) { el.dataset.state = s; el.textContent = labels[s]; }
+  });
+  (function () {
+    var done = ids.filter(function (id) { return st(id) === 'done'; }).length;
+    var pct = ids.length ? Math.round(done / ids.length * 100) : 0;
+    var ring = document.getElementById('ring'); if (ring) ring.style.setProperty('--pct', pct);
+    var rp = document.getElementById('ring-pct'); if (rp) rp.textContent = pct + '%';
+    var rc = document.getElementById('ring-count'); if (rc) rc.textContent = done + ' / ' + ids.length;
+  })();
+
+  // ── "Waiting for your input" banner (Claude sets #plan-state `waiting` when it pauses to ask) ──
+  (function () {
+    var bar = document.getElementById('await-bar'); if (!bar) return;
+    var w = emb && emb.waiting;
+    var q = w ? (typeof w === 'string' ? w : w.question) : null;
+    if (!q) return;                                   // no `waiting` set → banner stays hidden
+    var txt = document.getElementById('await-text'); if (txt) txt.textContent = '— ' + q;
+    bar.classList.add('on');
+    document.title = '⏳ ' + document.title.replace(/^⏳\s*/, '');   // flag the browser tab too
+    var sec = (typeof w === 'object' && w) ? w.section : null;
+    if (sec && document.getElementById(sec)) {
+      bar.classList.add('clickable');
+      bar.onclick = function () { _focusSection(sec); };
+    }
+  })();
+
+  // ── Theatrical animations (entrance, ring count-up, change celebrations, confetti) ──
+  (function () {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var SEENKEY = TKEY.replace('-theme', '-seen');     // sessionStorage: last-rendered status snapshot
+    var ENTERKEY = TKEY.replace('-theme', '-entered'); // sessionStorage: entrance-played flag
+
+    var prev = null;
+    try { var raw = sessionStorage.getItem(SEENKEY); if (raw) prev = JSON.parse(raw); } catch (e) {}
+    var cur = {}; ids.forEach(function (id) { cur[id] = st(id); });
+    try { sessionStorage.setItem(SEENKEY, JSON.stringify(cur)); } catch (e) {}
+    var firstEver = !prev;
+
+    // Entrance stagger — first load of the session only (so live reloads don't restage).
+    var entered = false; try { entered = sessionStorage.getItem(ENTERKEY) === '1'; } catch (e) {}
+    if (!entered) {
+      try { sessionStorage.setItem(ENTERKEY, '1'); } catch (e) {}
+      [].slice.call(document.querySelectorAll('.main > .hero, .main > .roadmap, .main > .card')).forEach(function (c, i) {
+        c.style.animation = 'plan-rise .5s cubic-bezier(.2,.7,.2,1) both';
+        c.style.animationDelay = (i * 55) + 'ms';
+      });
+    }
+
+    // Ring count-up from previous % to current %.
+    var ring = document.getElementById('ring'), rp = document.getElementById('ring-pct');
+    function pctOf(map) { var d = ids.filter(function (id) { return map[id] === 'done'; }).length; return ids.length ? Math.round(d / ids.length * 100) : 0; }
+    var pctNow = pctOf(cur), pctPrev = firstEver ? 0 : pctOf(prev);
+    if (ring && pctNow !== pctPrev) {
+      ring.classList.add('surge'); setTimeout(function () { ring.classList.remove('surge'); }, 1000);
+      var t0 = null;
+      requestAnimationFrame(function step(ts) {
+        if (t0 === null) t0 = ts;
+        var k = Math.min(1, (ts - t0) / 900), e = 1 - Math.pow(1 - k, 3);
+        var v = Math.round(pctPrev + (pctNow - pctPrev) * e);
+        ring.style.setProperty('--pct', v); if (rp) rp.textContent = v + '%';
+        if (k < 1) requestAnimationFrame(step);
+      });
+    }
+
+    // Confetti — self-contained canvas, single shared particle loop.
+    var CF = (function () {
+      var cv, ctx, P = [], raf = null;
+      var cols = ['#45c463', '#56b6ff', '#8b7bff', '#34d3c4', '#e0a93b', '#ff5d8f'];
+      function ensure() { if (!cv) { cv = document.createElement('canvas'); cv.className = 'confetti-cv'; document.body.appendChild(cv); ctx = cv.getContext('2d'); } cv.width = innerWidth; cv.height = innerHeight; }
+      function loop() {
+        ctx.clearRect(0, 0, cv.width, cv.height); var alive = false;
+        for (var i = 0; i < P.length; i++) { var p = P[i]; if (p.life <= 0) continue; alive = true;
+          p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 0.012;
+          ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore(); }
+        if (alive) raf = requestAnimationFrame(loop); else { ctx.clearRect(0, 0, cv.width, cv.height); raf = null; P = []; }
+      }
+      return function (cx, cy, n) {
+        ensure();
+        for (var i = 0; i < n; i++) { var a = Math.random() * Math.PI * 2, sp = 4 + Math.random() * 7;
+          P.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 4, g: 0.18 + Math.random() * 0.12, s: 4 + Math.random() * 5, c: cols[(Math.random() * cols.length) | 0], rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.4, life: 1 }); }
+        if (!raf) raf = requestAnimationFrame(loop);
+      };
+    })();
+    function burstAt(el) { var r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 3, width: 0, height: 0 }; CF(r.left + r.width / 2, r.top + r.height / 2, 40); }
+
+    // Per-section change celebrations (skipped on the first-ever load to avoid a spam burst).
+    if (!firstEver) {
+      ids.forEach(function (id) {
+        if (cur[id] === prev[id]) return;
+        [].slice.call(document.querySelectorAll('[data-track="' + id + '"]')).forEach(function (el) {
+          el.classList.add(cur[id] === 'done' ? 'celebrate-done' : 'celebrate-doing');
+        });
+        if (cur[id] === 'done') burstAt(document.querySelector('.rm-node[data-track="' + id + '"]'));
+      });
+      if (pctNow === 100 && pctPrev < 100) CF(innerWidth / 2, innerHeight * 0.28, 150); // finale
+    }
+
+    // Ambient breathing for in-progress sections.
+    ids.forEach(function (id) {
+      if (cur[id] === 'doing') [].slice.call(document.querySelectorAll('[data-track="' + id + '"]')).forEach(function (el) { el.classList.add('is-breathing'); });
+    });
+
+  })();
+
+  // ── Scroll-spy ──
+  var links = {};
+  document.querySelectorAll('nav.toc a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+  var spy = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) {
+        Object.values(links).forEach(function (a) { a.classList.remove('active'); });
+        var a = links[en.target.id]; if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+  document.querySelectorAll('section[id]').forEach(function (s) { spy.observe(s); });
+
+  // ── Theme toggle (initial theme already applied by the <head> script) ──
+  var html = document.documentElement;
+  var themeBtn = document.getElementById('theme-btn');
+  if (themeBtn) themeBtn.addEventListener('click', function () {
+    html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem(TKEY, html.dataset.theme); } catch (e) {}
+  });
+
+  // ── Futuristic background: drifting starfield ──
+  (function () {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var cv = document.getElementById('stars'); if (!cv) return;
+    var ctx = cv.getContext('2d'), stars = [], W, H;
+    var cols = ['#cfe0ff', '#cfe0ff', '#cfe0ff', '#8b7bff', '#34d3c4'];
+    function resize() {
+      W = cv.width = innerWidth; H = cv.height = innerHeight;
+      var n = Math.min(170, Math.round(W * H / 13000)); stars = [];
+      for (var i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, z: Math.random() * 0.8 + 0.2, r: Math.random() * 1.3 + 0.3, tw: Math.random() * 6.28 });
+    }
+    resize(); addEventListener('resize', resize);
+    (function draw() {
+      ctx.clearRect(0, 0, W, H);
+      for (var i = 0; i < stars.length; i++) { var s = stars[i];
+        s.y += s.z * 0.16; s.tw += 0.02; if (s.y > H + 2) { s.y = -2; s.x = Math.random() * W; }
+        ctx.globalAlpha = (0.35 + 0.45 * Math.sin(s.tw)) * s.z;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fillStyle = cols[i % cols.length]; ctx.fill();
+      }
+      ctx.globalAlpha = 1; requestAnimationFrame(draw);
+    })();
+  })();
+
+  // ── Cursor spotlight ──
+  (function () {
+    var sp = document.querySelector('.spotlight'); if (!sp) return;
+    if (window.matchMedia && matchMedia('(pointer: coarse)').matches) return;
+    addEventListener('mousemove', function (e) {
+      sp.style.setProperty('--mx', e.clientX + 'px');
+      sp.style.setProperty('--my', e.clientY + 'px');
+      sp.classList.add('on');
+    }, { passive: true });
+  })();
+
+  // ── Auto-refresh + auto-focus on the in-progress section ──
+  // The page reloads every RELOAD_MS to pick up #plan-state edits. On a normal reload we restore
+  // the reader's exact scroll position — INSTANTLY, because the page uses scroll-behavior:smooth
+  // for nav clicks and that would otherwise animate the restore on every refresh and look bad.
+  // The FIRST time an in-progress section exists (this session) we smooth-scroll to it once;
+  // after that we leave the reader wherever they scrolled.
+  if ('scrollRestoration' in history) { try { history.scrollRestoration = 'manual'; } catch (e) {} }
+  var _reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function _firstDoing() { for (var i = 0; i < ids.length; i++) if (st(ids[i]) === 'doing') return ids[i]; return null; }
+  function _instantTo(y) {
+    var r = document.documentElement, sb = r.style.scrollBehavior;
+    r.style.scrollBehavior = 'auto'; window.scrollTo(0, y || 0); r.style.scrollBehavior = sb;
+  }
+  function _focusSection(id) {
+    var el = id && document.getElementById(id); if (!el) return;
+    el.scrollIntoView({ behavior: _reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+  (function () {
+    // Auto-scroll to the in-progress section ONCE per session — the first time one exists
+    // (whether it's already in progress when you open the doc, or a section flips to in-progress
+    // while you're watching). After that, we leave you wherever you scrolled to.
+    var DONEKEY = TKEY.replace('-theme', '-autofocused'); // sessionStorage: already auto-scrolled?
+    var curFocus = _firstDoing();
+    var savedY = null; try { savedY = sessionStorage.getItem(SKEY); } catch (e) {}
+    try { sessionStorage.removeItem(SKEY); } catch (e) {}
+    var firstOpen = (savedY === null);
+    var alreadyFocused = false; try { alreadyFocused = sessionStorage.getItem(DONEKEY) === '1'; } catch (e) {}
+
+    if (curFocus && !alreadyFocused) {
+      try { sessionStorage.setItem(DONEKEY, '1'); } catch (e) {}   // mark done — only this once
+      setTimeout(function () { _focusSection(curFocus); }, firstOpen ? 600 : 0);
+    } else if (!firstOpen) {
+      _instantTo(parseInt(savedY, 10) || 0);              // keep the reader where they were
+    }
+  })();
+  setInterval(function () {
+    try { sessionStorage.setItem(SKEY, String(window.scrollY || window.pageYOffset || 0)); } catch (e) {}
+    location.reload();
+  }, RELOAD_MS);
+})();
+</script>
+</body>
+</html>
