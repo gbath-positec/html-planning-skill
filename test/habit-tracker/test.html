@@ -121,6 +121,16 @@ function withDays(keys){ const s=defaultState(); const id='h'; s.habits.push({id
 { const {s,id}=withDays([keyForOffset(0),keyForOffset(2)]); assertEqual(streakCurrent(s,id),1,'gap breaks current'); }
 { const {s,id}=withDays([]); assertEqual(streakCurrent(s,id),0,'empty current 0'); }
 { const {s,id}=withDays([keyForOffset(10),keyForOffset(11),keyForOffset(12),keyForOffset(5)]); assertEqual(streakLongest(s,id),3,'longest 3'); }
+
+// ---- tests: reorder ----
+let r = defaultState();
+r = addHabit(r,{name:'A'}); r = addHabit(r,{name:'B'});
+const bId=r.habits[1].id;
+r = reorderHabit(r, bId, -1); // move B up
+assertEqual(r.habits[0].name,'B','reorder moved B up');
+assertEqual(r.habits[0].order,0,'reorder reindexes order');
+r = reorderHabit(r, r.habits[0].id, -1); // already top, no-op
+assertEqual(r.habits[0].name,'B','reorder top is no-op');
 report();
 </script>
 </body></html>

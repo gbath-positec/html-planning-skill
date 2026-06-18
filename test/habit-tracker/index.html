@@ -30,6 +30,8 @@
   .manage{display:flex;gap:8px}
   .danger{background:#d4456a}
   #back{background:transparent;color:var(--accent);padding-left:0}
+  .reorder{display:flex;flex-direction:column}
+  .reorder button{padding:0 6px;background:transparent;color:var(--muted);font-size:10px;line-height:1.2}
 </style>
 </head><body>
 <div id="app"></div>
@@ -142,6 +144,10 @@ function renderToday(){
         style="${on?`background:${h.color};border-color:${h.color}`:''}"></button>
       <span class="open" data-action="open" data-id="${h.id}">${esc(h.emoji)} ${esc(h.name)}</span>
       <span class="streak">🔥 ${streakCurrent(state,h.id)}</span>
+      <span class="reorder">
+        <button data-action="up" data-id="${h.id}" aria-label="move up">▲</button>
+        <button data-action="down" data-id="${h.id}" aria-label="move down">▼</button>
+      </span>
     </li>`;}).join('');
   return `<header><h1>Habits</h1><p>${t} — ${doneCount} of ${sorted.length} done</p></header>
     <ul class="habit-list">${rows}</ul>
@@ -188,6 +194,8 @@ document.getElementById('app').addEventListener('click', e=>{
   else if(action==='cellToggle'){ currentView={name:'history',habitId:id}; setState(toggleCompletion(state, id, e.target.dataset.key)); }
   else if(action==='rename'){ const n=prompt('New name?'); if(n){ currentView={name:'history',habitId:id}; setState(renameHabit(state,id,n.trim())); } }
   else if(action==='delete'){ if(confirm('Delete this habit and its history?')){ currentView={name:'today'}; setState(deleteHabit(state,id)); } }
+  else if(action==='up') setState(reorderHabit(state, id, -1));
+  else if(action==='down') setState(reorderHabit(state, id, 1));
 });
 
 document.getElementById('app').addEventListener('submit', e=>{
