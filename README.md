@@ -58,6 +58,28 @@ decision — and clicking the banner jumps you to the section in question.
 
 ![The "Waiting for your input" banner pinned to the top of a plan](screenshots/05-waiting-banner.png)
 
+### 🪜 Sidebar sub-steps
+When a phase has a numbered step list, those steps appear as a collapsible
+sub-list under the phase in the sidebar — each with its own dot that turns green
+as work lands. The active phase auto-expands, the in-progress step glows amber,
+and clicking any sub-step jumps straight to it in the body. No extra authoring:
+it's built from the step list and progress data already in the plan.
+
+### 🚀 Deep-link buttons — launch Claude Code from the doc
+A plan can carry **opt-in buttons that open Claude Code directly**: "⚡ Open repo",
+"⏩ Continue plan" (runs the next unfinished phase), and "▶ Start" on each phase.
+A waiting question can even render its answer options as buttons, so a
+second-monitor reviewer clicks a choice and the session picks up from there. Uses
+the `claude-cli://` handler (Claude Code v2.1.91+); buttons simply don't appear if
+you don't opt in.
+
+### 🔄 Plan-aware sessions
+An optional, one-per-repo **SessionStart hook** makes every new Claude session in
+the repo wake up already knowing the newest plan — its path, which phases are
+done, what's in progress, and any pending question — by reading the plan's state
+and feeding it in as context. It's read-only and stays silent once the plan is
+100% done, so finished work never nags unrelated sessions.
+
 ---
 
 ## What's in this package
@@ -69,7 +91,8 @@ html-plan-skill/
 └── html-plan/                # ← the skill itself (this is what you install)
     ├── SKILL.md              # the skill definition Claude reads
     └── assets/
-        └── plan-template.html # the HTML template the skill fills in
+        ├── plan-template.html      # the HTML template the skill fills in
+        └── session-start-hook.json # the optional plan-aware SessionStart hook
 ```
 
 You only install the **`html-plan/`** folder. The README and screenshots are just
@@ -167,6 +190,28 @@ Add this under the top-level object in either `~/.claude/settings.json`
 
 After editing settings, open `/hooks` once or restart Claude Code so the new hook
 loads.
+
+---
+
+## Deep links & plan-aware sessions
+
+Two extra capabilities are driven by the skill itself — you don't configure them,
+you just ask for them:
+
+- **Deep-link buttons** are opt-in per plan. Ask Claude to "add deep links" (or it
+  offers them when a working directory is known) and the plan gets "Open repo",
+  "Continue plan", and per-phase "Start" buttons that launch Claude Code via the
+  `claude-cli://` handler. Requires **Claude Code v2.1.91+**; the handler
+  auto-registers on the first interactive `claude` run. Buttons work from the
+  opened `file://` doc — GitHub strips the scheme, so they're not for pasting into
+  a README.
+- **The plan-aware SessionStart hook** (`html-plan/assets/session-start-hook.json`)
+  is installed once per repo. Claude merges it into the repo's
+  `.claude/settings.json` when you ask it to set up plan-aware sessions; from then
+  on every session in that repo starts knowing the newest plan's state. It's
+  read-only, dependency-free (PowerShell on Windows), and silent once the plan is
+  done. As with any new hook, it takes effect after you open `/hooks` once or
+  restart.
 
 ---
 
