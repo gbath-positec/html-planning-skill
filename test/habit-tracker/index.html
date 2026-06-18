@@ -19,6 +19,12 @@
   .streak{color:var(--muted);font-size:14px}
   .muted{color:var(--muted)}
   button{font:inherit;color:#fff;background:var(--accent);border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+  #add-form{background:var(--card);padding:16px;border-radius:10px;display:flex;flex-direction:column;gap:10px;border:1px solid var(--line)}
+  .picker{display:flex;gap:8px;flex-wrap:wrap}
+  .picker label{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .sw{display:inline-block;width:18px;height:18px;border-radius:50%}
+  input#h-name{font:inherit;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--bg);color:var(--fg)}
+  #cancel-add{background:transparent;color:var(--muted);border:1px solid var(--line)}
 </style>
 </head><body>
 <div id="app"></div>
@@ -96,6 +102,24 @@ function setState(next){ state = next; store.save(state); renderApp(); }
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+let showAddForm = false;
+const EMOJI = ['✅','📖','🏃','🧘','💧','🛌','🎯','🎸'];
+const COLORS = ['#1f7fd6','#2e9e4a','#b9801b','#d4456a','#6b54e6'];
+
+function renderAddForm(){
+  return `<form id="add-form">
+    <input id="h-name" placeholder="Habit name" required autofocus>
+    <div class="picker">${EMOJI.map((e,i)=>`<label><input type="radio" name="emoji" value="${e}" ${i===0?'checked':''}>${e}</label>`).join('')}</div>
+    <div class="picker">${COLORS.map((c,i)=>`<label><input type="radio" name="color" value="${c}" ${i===0?'checked':''}><span class="sw" style="background:${c}"></span></label>`).join('')}</div>
+    <button type="submit">Add</button>
+    <button type="button" id="cancel-add">Cancel</button>
+  </form>`;
+}
+
+function addControl(){
+  return showAddForm ? renderAddForm() : `<button id="add-habit">+ Add habit</button>`;
+}
+
 function renderToday(){
   const t = todayKey();
   const sorted = [...state.habits].sort((a,b)=>a.order-b.order);
@@ -103,17 +127,20 @@ function renderToday(){
   if(sorted.length===0){
     return `<header><h1>Habits</h1><p>${t}</p></header>
       <p class="muted">No habits yet.</p>
-      <button id="add-habit">+ Add habit</button>`;
+      ${addControl()}`;
   }
-  const rows = sorted.map(h=>`
+  const rows = sorted.map(h=>{
+    const on = isDone(state,h.id,t);
+    return `
     <li class="habit-row" data-id="${h.id}">
-      <button class="toggle ${isDone(state,h.id,t)?'on':''}" data-action="toggle" data-id="${h.id}" aria-label="toggle"></button>
+      <button class="toggle ${on?'on':''}" data-action="toggle" data-id="${h.id}" aria-label="toggle"
+        style="${on?`background:${h.color};border-color:${h.color}`:''}"></button>
       <span class="open" data-action="open" data-id="${h.id}">${esc(h.emoji)} ${esc(h.name)}</span>
       <span class="streak">🔥 ${streakCurrent(state,h.id)}</span>
-    </li>`).join('');
+    </li>`;}).join('');
   return `<header><h1>Habits</h1><p>${t} — ${doneCount} of ${sorted.length} done</p></header>
     <ul class="habit-list">${rows}</ul>
-    <button id="add-habit">+ Add habit</button>`;
+    ${addControl()}`;
 }
 
 function renderApp(){
@@ -128,8 +155,20 @@ document.getElementById('app').addEventListener('click', e=>{
   const id = e.target.dataset.id;
   if(action==='toggle') setState(toggleCompletion(state, id, todayKey()));
   else if(action==='open'){ currentView={name:'history',habitId:id}; renderApp(); }
-  else if(e.target.id==='add-habit'){
-    const name=prompt('Habit name?'); if(name) setState(addHabit(state,{name}));
+  else if(e.target.id==='add-habit'){ showAddForm=true; renderApp(); }
+  else if(e.target.id==='cancel-add'){ showAddForm=false; renderApp(); }
+});
+
+document.getElementById('app').addEventListener('submit', e=>{
+  if(e.target.id==='add-form'){
+    e.preventDefault();
+    const f=e.target;
+    const name=f.querySelector('#h-name').value.trim();
+    if(!name) return;
+    const emoji=f.querySelector('input[name=emoji]:checked').value;
+    const color=f.querySelector('input[name=color]:checked').value;
+    showAddForm=false;
+    setState(addHabit(state,{name,emoji,color}));
   }
 });
 renderApp();
