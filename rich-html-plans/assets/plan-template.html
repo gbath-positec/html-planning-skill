@@ -1080,13 +1080,26 @@
   })();
 
   // ── Scroll-spy ──
+  // The page hard-reloads every RELOAD_MS. IntersectionObserver delivers its FIRST callback
+  // asynchronously (after the first paint), so without seeding, every reload would paint one
+  // frame with no .active highlight before the observer re-applies it → a visible flicker.
+  // Fix: persist the active id and re-apply it synchronously on load, BEFORE first paint.
+  var KACTIVE = TKEY.replace('-theme', '-active');   // sessionStorage: last active nav id
   var links = {};
   document.querySelectorAll('nav.toc a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+  (function () {                                       // seed highlight + accordion from the last frame
+    var seed = null; try { seed = sessionStorage.getItem(KACTIVE); } catch (e) {}
+    if (seed && links[seed]) {
+      links[seed].classList.add('active');
+      if (window.__subStepOnActive) window.__subStepOnActive(seed);
+    }
+  })();
   var spy = new IntersectionObserver(function (entries) {
     entries.forEach(function (en) {
       if (en.isIntersecting) {
         Object.values(links).forEach(function (a) { a.classList.remove('active'); });
         var a = links[en.target.id]; if (a) a.classList.add('active');
+        try { sessionStorage.setItem(KACTIVE, en.target.id); } catch (e) {}
         if (window.__subStepOnActive) window.__subStepOnActive(en.target.id);
       }
     });
