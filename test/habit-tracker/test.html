@@ -54,6 +54,49 @@ assertEqual(s.load(), defaultState(), 'load old version -> default');
 const good = {version:1, habits:[{id:'a',name:'X',emoji:'',color:'',createdAt:'',order:0}], completions:{a:{}}};
 mem._v = JSON.stringify(good);
 assertEqual(s.load(), good, 'load valid -> roundtrip');
+
+// ---- model (pure) — test paste uses deterministic id; index.html uses crypto.randomUUID ----
+function addHabit(state,{name,emoji='',color='#1f7fd6'}){
+  const order = state.habits.length;
+  const id = 'id'+order;
+  const habit = {id,name,emoji,color,createdAt:'',order};
+  return {...state, habits:[...state.habits, habit], completions:{...state.completions,[id]:{}}};
+}
+function renameHabit(state,id,name){
+  return {...state, habits: state.habits.map(h=>h.id===id?{...h,name}:h)};
+}
+function deleteHabit(state,id){
+  const completions = {...state.completions}; delete completions[id];
+  return {...state, habits: state.habits.filter(h=>h.id!==id), completions};
+}
+function reorderHabit(state,id,direction){
+  const habits=[...state.habits]; const i=habits.findIndex(h=>h.id===id); const j=i+direction;
+  if(i<0||j<0||j>=habits.length) return state;
+  [habits[i],habits[j]]=[habits[j],habits[i]];
+  return {...state, habits: habits.map((h,idx)=>({...h,order:idx}))};
+}
+function isDone(state,id,key){ return !!(state.completions[id]&&state.completions[id][key]); }
+function toggleCompletion(state,id,key){
+  const cur = {...(state.completions[id]||{})};
+  if(cur[key]) delete cur[key]; else cur[key]=true;
+  return {...state, completions:{...state.completions,[id]:cur}};
+}
+
+// ---- tests: model ----
+let mst = defaultState();
+mst = addHabit(mst,{name:'Read'});
+assertEqual(mst.habits.length, 1, 'addHabit adds');
+assertEqual(mst.habits[0].name, 'Read', 'addHabit name');
+mst = renameHabit(mst, mst.habits[0].id, 'Read 20m');
+assertEqual(mst.habits[0].name, 'Read 20m', 'renameHabit');
+mst = toggleCompletion(mst, mst.habits[0].id, '2026-06-18');
+assert(isDone(mst, mst.habits[0].id, '2026-06-18'), 'toggle on');
+mst = toggleCompletion(mst, mst.habits[0].id, '2026-06-18');
+assert(!isDone(mst, mst.habits[0].id, '2026-06-18'), 'toggle off');
+let mid0 = mst.habits[0].id;
+mst = deleteHabit(mst, mid0);
+assertEqual(mst.habits.length, 0, 'deleteHabit removes');
+assertEqual(mst.completions[mid0], undefined, 'deleteHabit drops completions');
 report();
 </script>
 </body></html>

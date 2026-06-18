@@ -34,5 +34,32 @@ const store = {
   load(){ try { return migrate(JSON.parse(localStorage.getItem(STORAGE_KEY))); } catch(e){ return defaultState(); } },
   save(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 };
+
+// ---- model (pure) ----
+function addHabit(state,{name,emoji='',color='#1f7fd6'}){
+  const order = state.habits.length;
+  const id = crypto.randomUUID();
+  const habit = {id, name, emoji, color, createdAt:new Date().toISOString(), order};
+  return {...state, habits:[...state.habits, habit], completions:{...state.completions,[id]:{}}};
+}
+function renameHabit(state,id,name){
+  return {...state, habits: state.habits.map(h=>h.id===id?{...h,name}:h)};
+}
+function deleteHabit(state,id){
+  const completions = {...state.completions}; delete completions[id];
+  return {...state, habits: state.habits.filter(h=>h.id!==id), completions};
+}
+function reorderHabit(state,id,direction){
+  const habits=[...state.habits]; const i=habits.findIndex(h=>h.id===id); const j=i+direction;
+  if(i<0||j<0||j>=habits.length) return state;
+  [habits[i],habits[j]]=[habits[j],habits[i]];
+  return {...state, habits: habits.map((h,idx)=>({...h,order:idx}))};
+}
+function isDone(state,id,key){ return !!(state.completions[id]&&state.completions[id][key]); }
+function toggleCompletion(state,id,key){
+  const cur = {...(state.completions[id]||{})};
+  if(cur[key]) delete cur[key]; else cur[key]=true;
+  return {...state, completions:{...state.completions,[id]:cur}};
+}
 </script>
 </body></html>
