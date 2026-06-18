@@ -61,5 +61,22 @@ function toggleCompletion(state,id,key){
   if(cur[key]) delete cur[key]; else cur[key]=true;
   return {...state, completions:{...state.completions,[id]:cur}};
 }
+
+// ---- streaks ----
+function streakCurrent(state,id){
+  const done = state.completions[id]||{};
+  // start at today if done, else yesterday; if neither, 0
+  let start = done[keyForOffset(0)] ? 0 : (done[keyForOffset(1)] ? 1 : null);
+  if(start===null) return 0;
+  let count=0, i=start;
+  while(done[keyForOffset(i)]){ count++; i++; }
+  return count;
+}
+function streakLongest(state,id){
+  const done = state.completions[id]||{};
+  let best=0, run=0;
+  for(let i=365;i>=0;i--){ if(done[keyForOffset(i)]){ run++; best=Math.max(best,run); } else { run=0; } }
+  return best;
+}
 </script>
 </body></html>

@@ -97,6 +97,30 @@ let mid0 = mst.habits[0].id;
 mst = deleteHabit(mst, mid0);
 assertEqual(mst.habits.length, 0, 'deleteHabit removes');
 assertEqual(mst.completions[mid0], undefined, 'deleteHabit drops completions');
+
+// ---- streaks (paste of index.html implementation) ----
+function streakCurrent(state,id){
+  const done = state.completions[id]||{};
+  let start = done[keyForOffset(0)] ? 0 : (done[keyForOffset(1)] ? 1 : null);
+  if(start===null) return 0;
+  let count=0, i=start;
+  while(done[keyForOffset(i)]){ count++; i++; }
+  return count;
+}
+function streakLongest(state,id){
+  const done = state.completions[id]||{};
+  let best=0, run=0;
+  for(let i=365;i>=0;i--){ if(done[keyForOffset(i)]){ run++; best=Math.max(best,run); } else { run=0; } }
+  return best;
+}
+
+// ---- tests: streaks ----
+function withDays(keys){ const s=defaultState(); const id='h'; s.habits.push({id,name:'h',emoji:'',color:'',createdAt:'',order:0}); s.completions[id]={}; keys.forEach(k=>s.completions[id][k]=true); return {s,id}; }
+{ const {s,id}=withDays([keyForOffset(0),keyForOffset(1)]); assertEqual(streakCurrent(s,id),2,'current 2 ending today'); }
+{ const {s,id}=withDays([keyForOffset(1),keyForOffset(2)]); assertEqual(streakCurrent(s,id),2,'current 2 ending yesterday'); }
+{ const {s,id}=withDays([keyForOffset(0),keyForOffset(2)]); assertEqual(streakCurrent(s,id),1,'gap breaks current'); }
+{ const {s,id}=withDays([]); assertEqual(streakCurrent(s,id),0,'empty current 0'); }
+{ const {s,id}=withDays([keyForOffset(10),keyForOffset(11),keyForOffset(12),keyForOffset(5)]); assertEqual(streakLongest(s,id),3,'longest 3'); }
 report();
 </script>
 </body></html>
