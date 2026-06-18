@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habit Tracker</title>
+<style>
+  /* Light theme is the app default (chosen during planning). */
+  :root{ --bg:#f5f6f9; --card:#ffffff; --fg:#1a1e28; --muted:#5a6478; --accent:#1f7fd6; --line:#dde1e9; }
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+  #app{max-width:640px;margin:0 auto;padding:24px}
+</style>
+</head><body>
+<div id="app"></div>
+<script>
+"use strict";
+// ---- dates ----
+function dateKey(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayKey(){ return dateKey(new Date()); }
+function keyForOffset(n){ const d=new Date(); d.setDate(d.getDate()-n); return dateKey(d); }
+function lastNDays(n){ const out=[]; for(let i=n-1;i>=0;i--) out.push(keyForOffset(i)); return out; }
+</script>
+</body></html>

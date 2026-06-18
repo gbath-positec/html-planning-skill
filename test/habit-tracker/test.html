@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Habit Tracker Tests</title></head>
+<body>
+<pre id="out"></pre>
+<script>
+const results = [];
+function assert(cond, msg){ results.push({ok: !!cond, msg}); }
+function assertEqual(a, b, msg){ assert(JSON.stringify(a)===JSON.stringify(b), `${msg} (got ${JSON.stringify(a)}, want ${JSON.stringify(b)})`); }
+function report(){
+  const out = document.getElementById('out');
+  const failed = results.filter(r=>!r.ok);
+  out.textContent = results.map(r=>`${r.ok?'PASS':'FAIL'} ${r.msg}`).join('\n')
+    + `\n\n${results.length-failed.length}/${results.length} passed`;
+}
+
+// ---- date helpers (paste of index.html implementation) ----
+function dateKey(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayKey(){ return dateKey(new Date()); }
+function keyForOffset(n){ const d=new Date(); d.setDate(d.getDate()-n); return dateKey(d); }
+function lastNDays(n){ const out=[]; for(let i=n-1;i>=0;i--) out.push(keyForOffset(i)); return out; }
+
+// ---- tests: dates ----
+assertEqual(dateKey(new Date(2026,5,18)), '2026-06-18', 'dateKey pads month/day');
+assertEqual(dateKey(new Date(2026,0,3)), '2026-01-03', 'dateKey single digits padded');
+assert(/^\d{4}-\d{2}-\d{2}$/.test(todayKey()), 'todayKey format');
+assertEqual(keyForOffset(0), todayKey(), 'offset 0 is today');
+assertEqual(lastNDays(3).length, 3, 'lastNDays length');
+assertEqual(lastNDays(3)[2], todayKey(), 'lastNDays ends today');
+report();
+</script>
+</body></html>
