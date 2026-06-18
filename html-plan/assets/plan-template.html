@@ -1062,6 +1062,23 @@
     };
   })();
 
+  // ── Click-to-step: scroll to the exact body step and flash it ──
+  (function () {
+    var reduceMo = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    [].slice.call(document.querySelectorAll('nav.toc .toc-sub a')).forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        var id = a.getAttribute('href').slice(1);
+        var li = document.getElementById(id); if (!li) return;
+        e.preventDefault();
+        var card = li.closest('section.card'); if (card) card.classList.remove('collapsed');
+        li.scrollIntoView({ behavior: reduceMo ? 'auto' : 'smooth', block: 'center' });
+        li.classList.remove('flash'); void li.offsetWidth; li.classList.add('flash');
+        setTimeout(function () { li.classList.remove('flash'); }, 1500);
+        try { history.replaceState(null, '', '#' + id); } catch (e2) {}
+      });
+    });
+  })();
+
   // ── Scroll-spy ──
   var links = {};
   document.querySelectorAll('nav.toc a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
