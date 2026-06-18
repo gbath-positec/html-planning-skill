@@ -9,6 +9,16 @@
   *{box-sizing:border-box}
   body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
   #app{max-width:640px;margin:0 auto;padding:24px}
+  h1{font-size:24px;margin:0 0 2px}
+  header p{color:var(--muted);margin:0 0 16px}
+  .habit-list{list-style:none;padding:0;margin:16px 0}
+  .habit-row{display:flex;align-items:center;gap:12px;background:var(--card);padding:12px 16px;border-radius:10px;margin-bottom:8px;border:1px solid var(--line)}
+  .toggle{width:24px;height:24px;border-radius:50%;border:2px solid var(--muted);background:transparent;cursor:pointer;flex:none}
+  .toggle.on{background:var(--accent);border-color:var(--accent)}
+  .open{flex:1;cursor:pointer}
+  .streak{color:var(--muted);font-size:14px}
+  .muted{color:var(--muted)}
+  button{font:inherit;color:#fff;background:var(--accent);border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
 </style>
 </head><body>
 <div id="app"></div>
@@ -78,5 +88,50 @@ function streakLongest(state,id){
   for(let i=365;i>=0;i--){ if(done[keyForOffset(i)]){ run++; best=Math.max(best,run); } else { run=0; } }
   return best;
 }
+
+// ---- app state + render ----
+let state = store.load();
+let currentView = {name:'today'};
+function setState(next){ state = next; store.save(state); renderApp(); }
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function renderToday(){
+  const t = todayKey();
+  const sorted = [...state.habits].sort((a,b)=>a.order-b.order);
+  const doneCount = sorted.filter(h=>isDone(state,h.id,t)).length;
+  if(sorted.length===0){
+    return `<header><h1>Habits</h1><p>${t}</p></header>
+      <p class="muted">No habits yet.</p>
+      <button id="add-habit">+ Add habit</button>`;
+  }
+  const rows = sorted.map(h=>`
+    <li class="habit-row" data-id="${h.id}">
+      <button class="toggle ${isDone(state,h.id,t)?'on':''}" data-action="toggle" data-id="${h.id}" aria-label="toggle"></button>
+      <span class="open" data-action="open" data-id="${h.id}">${esc(h.emoji)} ${esc(h.name)}</span>
+      <span class="streak">🔥 ${streakCurrent(state,h.id)}</span>
+    </li>`).join('');
+  return `<header><h1>Habits</h1><p>${t} — ${doneCount} of ${sorted.length} done</p></header>
+    <ul class="habit-list">${rows}</ul>
+    <button id="add-habit">+ Add habit</button>`;
+}
+
+function renderApp(){
+  const app = document.getElementById('app');
+  if(currentView.name==='today') app.innerHTML = renderToday();
+  else if(typeof renderHistory==='function') app.innerHTML = renderHistory(currentView.habitId);
+  else { currentView={name:'today'}; app.innerHTML = renderToday(); }
+}
+
+document.getElementById('app').addEventListener('click', e=>{
+  const action = e.target.dataset.action;
+  const id = e.target.dataset.id;
+  if(action==='toggle') setState(toggleCompletion(state, id, todayKey()));
+  else if(action==='open'){ currentView={name:'history',habitId:id}; renderApp(); }
+  else if(e.target.id==='add-habit'){
+    const name=prompt('Habit name?'); if(name) setState(addHabit(state,{name}));
+  }
+});
+renderApp();
 </script>
 </body></html>
