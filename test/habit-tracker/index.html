@@ -25,6 +25,11 @@
   .sw{display:inline-block;width:18px;height:18px;border-radius:50%}
   input#h-name{font:inherit;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--bg);color:var(--fg)}
   #cancel-add{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(15,1fr);gap:4px;margin:16px 0}
+  .cell{aspect-ratio:1;border-radius:3px;background:var(--card);cursor:pointer;border:1px solid var(--line)}
+  .manage{display:flex;gap:8px}
+  .danger{background:#d4456a}
+  #back{background:transparent;color:var(--accent);padding-left:0}
 </style>
 </head><body>
 <div id="app"></div>
@@ -143,6 +148,27 @@ function renderToday(){
     ${addControl()}`;
 }
 
+function renderHistory(id){
+  const h = state.habits.find(x=>x.id===id);
+  if(!h){ currentView={name:'today'}; return renderToday(); }
+  const days = lastNDays(90);
+  const cells = days.map(k=>{
+    const on = isDone(state,id,k);
+    return `<span class="cell ${on?'on':''}" data-action="cellToggle" data-id="${id}" data-key="${k}"
+      title="${k}" style="${on?`background:${h.color}`:''}"></span>`;
+  }).join('');
+  return `<header>
+      <button id="back" data-action="back">← Back</button>
+      <h1>${esc(h.emoji)} ${esc(h.name)}</h1>
+      <p>🔥 ${streakCurrent(state,id)} current · 🏆 ${streakLongest(state,id)} longest</p>
+    </header>
+    <div class="grid">${cells}</div>
+    <div class="manage">
+      <button data-action="rename" data-id="${id}">Rename</button>
+      <button class="danger" data-action="delete" data-id="${id}">Delete</button>
+    </div>`;
+}
+
 function renderApp(){
   const app = document.getElementById('app');
   if(currentView.name==='today') app.innerHTML = renderToday();
@@ -157,6 +183,11 @@ document.getElementById('app').addEventListener('click', e=>{
   else if(action==='open'){ currentView={name:'history',habitId:id}; renderApp(); }
   else if(e.target.id==='add-habit'){ showAddForm=true; renderApp(); }
   else if(e.target.id==='cancel-add'){ showAddForm=false; renderApp(); }
+  // setState calls renderApp (which reads currentView) — set view BEFORE setState
+  else if(action==='back'){ currentView={name:'today'}; renderApp(); }
+  else if(action==='cellToggle'){ currentView={name:'history',habitId:id}; setState(toggleCompletion(state, id, e.target.dataset.key)); }
+  else if(action==='rename'){ const n=prompt('New name?'); if(n){ currentView={name:'history',habitId:id}; setState(renameHabit(state,id,n.trim())); } }
+  else if(action==='delete'){ if(confirm('Delete this habit and its history?')){ currentView={name:'today'}; setState(deleteHabit(state,id)); } }
 });
 
 document.getElementById('app').addEventListener('submit', e=>{
