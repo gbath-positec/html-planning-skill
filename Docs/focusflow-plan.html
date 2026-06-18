@@ -35,8 +35,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{TITLE}}</title>
-<script>try{var _t=localStorage.getItem('{{KEBAB_TITLE}}-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<title>FocusFlow — Pomodoro Focus Timer · Plan</title>
+<script>try{var _t=localStorage.getItem('focusflow-plan-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <style>
   :root {
     --bg: #0b0d12;
@@ -440,8 +440,8 @@
 
   <!-- ───────── Sidebar ───────── -->
   <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><b>{{SHORT_TITLE}}</b></div>
-    <div class="brand-sub">{{SUBTAG e.g. ⎇ branch-name}}</div>
+    <div class="brand"><span class="dot"></span><b>FocusFlow</b></div>
+    <div class="brand-sub">⎇ deep-links · vanilla JS</div>
 
     <div class="ring-wrap">
       <div class="ring" id="ring"><span id="ring-pct">0%</span></div>
@@ -450,15 +450,20 @@
 
     <div class="toc-label">Plan</div>
     <nav class="toc" id="toc">
-      <!-- One link per TRACKED section. data-track must match the section id + pill. -->
-      <a href="#sectionA" data-track="sectionA"><span class="mk"></span>Section A</a>
-      <!-- ...more tracked links... -->
+      <a href="#phase0" data-track="phase0"><span class="mk"></span>0 · Scaffold &amp; layout</a>
+      <a href="#phase1" data-track="phase1"><span class="mk"></span>1 · Timer engine</a>
+      <a href="#phase2" data-track="phase2"><span class="mk"></span>2 · Settings</a>
+      <a href="#phase3" data-track="phase3"><span class="mk"></span>3 · Sessions &amp; stats</a>
+      <a href="#phase4" data-track="phase4"><span class="mk"></span>4 · Notifications</a>
+      <a href="#phase5" data-track="phase5"><span class="mk"></span>5 · Polish &amp; PWA</a>
     </nav>
     <div class="toc-label">Reference</div>
     <nav class="toc">
-      <!-- Non-tracked links: leave .mk transparent, no data-track. -->
+      <a href="#context"><span class="mk" style="background:transparent"></span>Goals &amp; scope</a>
+      <a href="#datamodel"><span class="mk" style="background:transparent"></span>Data model</a>
       <a href="#critical"><span class="mk" style="background:transparent"></span>Critical files</a>
       <a href="#verify"><span class="mk" style="background:transparent"></span>Verification</a>
+      <a href="#deferred"><span class="mk" style="background:transparent"></span>Deferred</a>
       <a href="#activity"><span class="mk" style="background:transparent"></span>Activity log</a>
     </nav>
 
@@ -478,19 +483,26 @@
   <main class="main">
 
     <header class="hero">
-      <div class="eyebrow">{{EYEBROW e.g. Implementation Plan}}</div>
-      <h1>{{TITLE}}</h1>
-      <p>{{SUBTITLE — one or two sentences}}</p>
+      <div class="eyebrow">Implementation Plan</div>
+      <h1>FocusFlow</h1>
+      <p>A single-page Pomodoro focus timer — a drift-free timer engine, persisted settings, session stats with streaks, and end-of-interval notifications. Vanilla JS, no build step, fully offline.</p>
       <div class="chips">
-        <span class="chip">{{✦ highlight}}</span>
-        <!-- a few key facts as chips -->
+        <span class="chip">✦ <b>Vanilla JS</b> · no framework</span>
+        <span class="chip">✦ <b>No build</b> — one HTML file</span>
+        <span class="chip">✦ <b>Offline-first</b> · PWA</span>
+        <span class="chip">✦ State in <b>localStorage</b></span>
+        <span class="chip">✦ <b>6</b> phases</span>
       </div>
     </header>
 
     <!-- Roadmap: one node per tracked section, data-track must match. -->
     <div class="roadmap" id="roadmap">
-      <a class="rm-node" href="#sectionA" data-track="sectionA"><div class="rm-num">1</div><div class="rm-label">Section A</div></a>
-      <!-- ...more nodes... -->
+      <a class="rm-node" href="#phase0" data-track="phase0"><div class="rm-num">0</div><div class="rm-label">Scaffold</div></a>
+      <a class="rm-node" href="#phase1" data-track="phase1"><div class="rm-num">1</div><div class="rm-label">Timer engine</div></a>
+      <a class="rm-node" href="#phase2" data-track="phase2"><div class="rm-num">2</div><div class="rm-label">Settings</div></a>
+      <a class="rm-node" href="#phase3" data-track="phase3"><div class="rm-num">3</div><div class="rm-label">Sessions &amp; stats</div></a>
+      <a class="rm-node" href="#phase4" data-track="phase4"><div class="rm-num">4</div><div class="rm-label">Notifications</div></a>
+      <a class="rm-node" href="#phase5" data-track="phase5"><div class="rm-num">5</div><div class="rm-label">Polish &amp; PWA</div></a>
     </div>
     <div class="legend">
       <span><i style="background:var(--border)"></i> To do</span>
@@ -499,78 +511,260 @@
       <span style="color:var(--faint)">— status reflects implementation progress; roadmap &amp; sidebar mirror it</span>
     </div>
 
-    <!-- ───────── Example TRACKED section ───────── -->
-    <section id="sectionA" class="card phase">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">{{KICKER e.g. Phase 1 · Foundation}}</div>
-          <h2>{{Section title}} <span class="muted-tail">— optional subtitle</span></h2>
-        </div>
-        <button class="status" data-track="sectionA">To do</button>
+    <!-- ───────── Goals & scope (reference) ───────── -->
+    <section id="context" class="card plain">
+      <div class="sec-kicker">Why</div>
+      <h2>Goals &amp; scope</h2>
+      <p>A distraction-free Pomodoro timer that just works: open the file, hit start, and focus.
+        It must keep accurate time even when the tab is backgrounded, remember your preferences
+        and history across reloads, and run with no server and no network.</p>
+      <div class="compare">
+        <div class="good"><div class="ct">In scope</div><ul>
+          <li>Focus / short-break / long-break cycle</li>
+          <li>Configurable durations &amp; rounds-per-long-break</li>
+          <li>Per-day completed-session count + streak</li>
+          <li>Desktop notification + chime at each interval end</li>
+          <li>Installable, offline (PWA)</li>
+        </ul></div>
+        <div class="bad"><div class="ct">Out of scope (v1)</div><ul>
+          <li>Accounts / cloud sync</li>
+          <li>Task lists or project tagging</li>
+          <li>Mobile-native app</li>
+          <li>Team / shared timers</li>
+        </ul></div>
       </div>
-      <p>{{Body…}}</p>
-      <!-- Use <ul>, <table>, <div class="callout">, <div class="diagram"> as needed. -->
+      <div class="callout">Single self-contained <code>index.html</code> (plus a service worker + manifest for the PWA phase). No bundler, no dependencies.</div>
     </section>
 
-    <!-- Optional flow diagram pattern:
-    <div class="diagram">
-      <div class="dg-title">Title</div>
-      <div class="flow">
-        <div class="col"><div class="node q"><b>Input</b><small>note</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node hl"><b>Step</b><small>note</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node ans"><b>Output</b><small>note</small></div></div>
+    <!-- ───────── Phase 0 ───────── -->
+    <section id="phase0" class="card phase" data-accent="blue">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 0 · Foundation</div>
+          <h2>Scaffold &amp; layout <span class="muted-tail">— the shell everything renders into</span></h2>
+        </div>
+        <button class="status" data-track="phase0">To do</button>
       </div>
-    </div>
-    -->
+      <p>Stand up the single-page shell, design tokens, and the static timer face before any logic.</p>
+      <ol class="steps">
+        <li><b>HTML shell.</b> <code>index.html</code> with a centered timer face, mode label, and a control row (Start / Pause / Reset / Skip).</li>
+        <li><b>Design tokens.</b> CSS custom properties for color, spacing, and the big mono time readout; light/dark via <code>prefers-color-scheme</code>.</li>
+        <li><b>Responsive layout.</b> Flexbox column that stays centered and legible from phone to desktop.</li>
+        <li><b>Module seam.</b> One <code>&lt;script type="module"&gt;</code> with empty stubs (<code>engine</code>, <code>store</code>, <code>ui</code>) so later phases slot in.</li>
+      </ol>
+    </section>
 
-    <!-- Optional schema/table-model pattern:
-    <div class="diagram">
-      <div class="dg-title">table_name</div>
-      <div class="schema">
-        <div class="row"><span class="col-name">column</span><span class="col-type">type</span><span class="col-note">note</span></div>
+    <!-- ───────── Phase 1 ───────── -->
+    <section id="phase1" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 1 · Core</div>
+          <h2>Timer engine <span class="muted-tail">— a drift-free interval state machine</span></h2>
+        </div>
+        <button class="status" data-track="phase1">To do</button>
       </div>
-    </div>
-    -->
+      <p>The heart of the app: a small state machine that advances through focus and break
+        intervals, and a tick loop that stays accurate even when the tab is throttled.</p>
 
-    <!-- Optional numbered-steps pattern (procedures / ordered work):
-    <ol class="steps">
-      <li><b>Step title.</b> What happens, files touched, etc.</li>
-      <li><b>Next step.</b> …</li>
-    </ol>
-    -->
+      <div class="diagram">
+        <div class="dg-title">Interval state machine</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>Idle</b><small>start →</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>Focus</b><small>25:00</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>Short break</b><small>5:00 ×3</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>Focus</b><small>×4 total</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node ans"><b>Long break</b><small>15:00 → loop</small></div></div>
+        </div>
+      </div>
 
-    <!-- Optional comparison pattern (before/after, option A vs B, trade-offs):
-    <div class="compare">
-      <div class="bad"><div class="ct">Before</div><ul><li>…</li></ul></div>
-      <div class="good"><div class="ct">After</div><ul><li>…</li></ul></div>
-    </div>
-    (use .pick to highlight a chosen option)
-    -->
+      <div class="compare">
+        <div class="bad"><div class="ct">Naïve — drifts</div><ul>
+          <li><code>setInterval(t--, 1000)</code> decrements a counter</li>
+          <li>Background tabs throttle to ~1/s or pause → lost seconds</li>
+          <li>Sleep / wake desyncs from wall clock</li>
+        </ul></div>
+        <div class="pick"><div class="ct">Chosen — timestamp-based</div><ul>
+          <li>Store <code>endsAt = Date.now() + remaining</code></li>
+          <li>Each tick recomputes <code>remaining = endsAt − Date.now()</code></li>
+          <li>Display only; truth is the timestamp → survives throttling &amp; sleep</li>
+        </ul></div>
+      </div>
 
-    <!-- Optional tree pattern (file structure / decomposition):
-    <div class="diagram">
-      <div class="dg-title">repo layout</div>
-      <div class="tree"><span class="dir">lib/</span>
-├─ <span class="nm">search.ts</span>      <small>pgvector similarity</small>
-├─ <span class="dir">tools/</span>
-│  └─ <span class="nm">index.ts</span>    <small>tool registry</small>
-└─ <span class="nm">prisma.ts</span></div>
-    </div>
-    -->
+      <ol class="steps">
+        <li><b>State machine.</b> <code>{ mode, round, endsAt, running }</code> with <code>start / pause / reset / skip</code> transitions.</li>
+        <li><b>Tick loop.</b> <code>requestAnimationFrame</code> (or 250 ms interval) recomputes remaining from <code>endsAt</code>; format <code>mm:ss</code>.</li>
+        <li><b>Auto-advance.</b> On reaching zero, emit an <code>interval-complete</code> event and transition to the next mode.</li>
+        <li><b>Pause / resume.</b> On pause, stash <code>remaining</code>; on resume, recompute <code>endsAt</code>.</li>
+      </ol>
+    </section>
 
-    <!-- ───────── Example REFERENCE sections (no tracking) ───────── -->
+    <!-- ───────── Phase 2 ───────── -->
+    <section id="phase2" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 2 · Config</div>
+          <h2>Settings <span class="muted-tail">— durations, rounds, persistence</span></h2>
+        </div>
+        <button class="status" data-track="phase2">To do</button>
+      </div>
+      <p>Let the user tune the cycle, and remember it across reloads.</p>
+      <div class="diagram">
+        <div class="dg-title">settings (localStorage: focusflow.settings)</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">focusMin</span><span class="col-type">number</span><span class="col-note">focus length · default 25</span></div>
+          <div class="row"><span class="col-name">shortMin</span><span class="col-type">number</span><span class="col-note">short break · default 5</span></div>
+          <div class="row"><span class="col-name">longMin</span><span class="col-type">number</span><span class="col-note">long break · default 15</span></div>
+          <div class="row"><span class="col-name">roundsPerLong</span><span class="col-type">number</span><span class="col-note">focus blocks before a long break · default 4</span></div>
+          <div class="row"><span class="col-name">autoStart</span><span class="col-type">boolean</span><span class="col-note">auto-begin next interval</span></div>
+          <div class="row"><span class="col-name">soundOn</span><span class="col-type">boolean</span><span class="col-note">chime at interval end</span></div>
+        </div>
+      </div>
+      <ol class="steps">
+        <li><b>Settings panel.</b> A slide-in form bound to the fields above.</li>
+        <li><b>Persist.</b> Write to <code>localStorage</code> on change; load + merge with defaults on boot.</li>
+        <li><b>Live apply.</b> Changing a duration updates the current interval only when idle; otherwise applies next interval.</li>
+      </ol>
+    </section>
+
+    <!-- ───────── Phase 3 ───────── -->
+    <section id="phase3" class="card phase" data-accent="blue">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 3 · Insight</div>
+          <h2>Sessions &amp; stats <span class="muted-tail">— count, streaks, a tiny chart</span></h2>
+        </div>
+        <button class="status" data-track="phase3">To do</button>
+      </div>
+      <p>Log each completed focus interval and surface simple, motivating stats.</p>
+      <div class="diagram">
+        <div class="dg-title">session record (focusflow.sessions[])</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">date</span><span class="col-type">string</span><span class="col-note">YYYY-MM-DD (local)</span></div>
+          <div class="row"><span class="col-name">startedAt</span><span class="col-type">number</span><span class="col-note">epoch ms</span></div>
+          <div class="row"><span class="col-name">minutes</span><span class="col-type">number</span><span class="col-note">focus length completed</span></div>
+        </div>
+      </div>
+      <div class="diagram">
+        <div class="dg-title">Completion → stats</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>Focus ends</b><small>interval-complete</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>Append record</b><small>sessions[]</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>Recompute</b><small>today · streak</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node ans"><b>Render</b><small>count + 7-day bars</small></div></div>
+        </div>
+      </div>
+      <ol class="steps">
+        <li><b>Record on complete.</b> Only focus intervals count; breaks don't.</li>
+        <li><b>Daily count + streak.</b> Consecutive days with ≥1 session; reset on a gap.</li>
+        <li><b>7-day mini chart.</b> CSS-bar sparkline of the last week — no chart library.</li>
+      </ol>
+    </section>
+
+    <!-- ───────── Phase 4 ───────── -->
+    <section id="phase4" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 4 · Feedback</div>
+          <h2>Notifications &amp; sound <span class="muted-tail">— know when an interval ends</span></h2>
+        </div>
+        <button class="status" data-track="phase4">To do</button>
+      </div>
+      <p>Make interval ends impossible to miss, even when the tab isn't focused.</p>
+      <div class="diagram">
+        <div class="dg-title">On interval end</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>interval-complete</b><small>engine event</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>Desktop notify</b><small>Notification API</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>Chime</b><small>WebAudio · if soundOn</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node ans"><b>Tab title</b><small>flash “Break! ▸”</small></div></div>
+        </div>
+      </div>
+      <ol class="steps">
+        <li><b>Permission.</b> Request <code>Notification</code> permission on first Start, not on load.</li>
+        <li><b>Chime.</b> Short WebAudio tone — no audio file shipped.</li>
+        <li><b>Tab title.</b> Update <code>document.title</code> with remaining time + a nudge when backgrounded.</li>
+      </ol>
+      <div class="callout warn">On a <code>file://</code> origin some browsers block notifications. Fall back to the tab-title flash + chime; the PWA phase (served via SW) restores full notifications.</div>
+    </section>
+
+    <!-- ───────── Phase 5 ───────── -->
+    <section id="phase5" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 5 · Finish</div>
+          <h2>Polish &amp; PWA <span class="muted-tail">— shortcuts, themes, installable offline</span></h2>
+        </div>
+        <button class="status" data-track="phase5">To do</button>
+      </div>
+      <p>Round off the experience and make it installable.</p>
+      <ol class="steps">
+        <li><b>Keyboard shortcuts.</b> Space = start/pause, R = reset, S = skip.</li>
+        <li><b>Theme toggle.</b> Manual light/dark override on top of the system default; persisted.</li>
+        <li><b>Manifest + service worker.</b> Cache the shell for offline; add an install prompt.</li>
+        <li><b>Title-bar progress.</b> Favicon ring that fills as the interval elapses.</li>
+      </ol>
+    </section>
+
+    <!-- ───────── Reference sections ───────── -->
+    <section id="datamodel" class="card plain">
+      <div class="sec-kicker">State</div>
+      <h2>Data model</h2>
+      <p>All persistence is <code>localStorage</code>, namespaced under <code>focusflow.*</code>. Nothing leaves the device.</p>
+      <div class="diagram">
+        <div class="dg-title">localStorage keys</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">focusflow.settings</span><span class="col-type">object</span><span class="col-note">the settings record (Phase 2)</span></div>
+          <div class="row"><span class="col-name">focusflow.sessions</span><span class="col-type">array</span><span class="col-note">completed focus sessions (Phase 3)</span></div>
+          <div class="row"><span class="col-name">focusflow.theme</span><span class="col-type">string</span><span class="col-note">"light" | "dark" override (Phase 5)</span></div>
+        </div>
+      </div>
+    </section>
+
     <section id="critical" class="card plain">
       <div class="sec-kicker">Map</div>
       <h2>Critical files</h2>
-      <ul><li>…</li></ul>
+      <div class="diagram">
+        <div class="dg-title">repo layout</div>
+        <div class="tree"><span class="dir">focusflow/</span>
+├─ <span class="nm">index.html</span>        <small>shell + inline module (Phases 0–5)</small>
+├─ <span class="nm">manifest.webmanifest</span> <small>PWA metadata (Phase 5)</small>
+├─ <span class="nm">sw.js</span>             <small>service worker · offline cache (Phase 5)</small>
+└─ <span class="dir">icons/</span>           <small>app + favicon-ring assets</small></div>
+      </div>
     </section>
 
     <section id="verify" class="card plain">
       <div class="sec-kicker">Proof</div>
       <h2>Verification</h2>
-      <ul><li>…</li></ul>
+      <ul>
+        <li><b>Drift test:</b> start a 25-min focus, background the tab 5 min, return — remaining is within ~1 s of wall clock.</li>
+        <li><b>Cycle test:</b> with short durations, confirm 4 focus blocks → long break, then loop.</li>
+        <li><b>Persistence:</b> change settings, complete a session, reload — both survive.</li>
+        <li><b>Streak:</b> seed sessions across days; count + streak match; a gap resets the streak.</li>
+        <li><b>Offline:</b> install the PWA, go offline, reload — app still loads and runs.</li>
+      </ul>
+      <div class="callout ok">Done = all five checks pass in Chrome + one other engine (Firefox).</div>
+    </section>
+
+    <section id="deferred" class="card plain">
+      <div class="sec-kicker">Later</div>
+      <h2>Deferred</h2>
+      <ul>
+        <li>Cloud sync / accounts <span class="pill defer">later</span></li>
+        <li>Task list &amp; per-task focus attribution <span class="pill defer">later</span></li>
+        <li>Long-range analytics / heatmap calendar <span class="pill defer">later</span></li>
+        <li>Custom sound packs <span class="pill defer">later</span></li>
+      </ul>
     </section>
 
     <!-- Activity log — auto-rendered from #plan-state `log`; self-hides when the log is empty. -->
@@ -579,7 +773,7 @@
       <h2>Activity log</h2>
     </section>
 
-    <footer>{{TITLE}}</footer>
+    <footer>FocusFlow — Pomodoro focus timer · implementation plan</footer>
 
   </main>
 </div>
@@ -588,15 +782,29 @@
      • Set each tracked id to "todo" | "doing" | "done". Keys MUST match the `ids` array.
      • The page auto-refreshes every few seconds, so edits here show up on their own. -->
 <script id="plan-state" type="application/json">
-{ "status": {} }
+{
+  "status": { "phase0": "todo", "phase1": "todo", "phase2": "todo", "phase3": "todo", "phase4": "todo", "phase5": "todo" },
+  "deepLinks": {
+    "cwd": "C:/Users/gbath.SURREY/Desktop/html-plan-skill",
+    "planPath": "Docs/focusflow-plan.html"
+  },
+  "actions": {
+    "phase0": { "start": "Open the plan at Docs/focusflow-plan.html and implement Phase 0 (Scaffold and layout): create index.html with the timer face, control row, design tokens, responsive layout, and empty module stubs. Update #plan-state as you go." },
+    "phase1": { "start": "Open the plan at Docs/focusflow-plan.html and implement Phase 1 (Timer engine): the interval state machine plus a drift-free, timestamp-based tick loop with start/pause/reset/skip. Update #plan-state." },
+    "phase2": { "start": "Open the plan at Docs/focusflow-plan.html and implement Phase 2 (Settings): the settings panel bound to the settings record, with localStorage persistence and defaults. Update #plan-state." },
+    "phase3": { "start": "Open the plan at Docs/focusflow-plan.html and implement Phase 3 (Sessions and stats): log completed focus sessions, compute daily count and streak, and render a 7-day mini chart. Update #plan-state." },
+    "phase4": { "start": "Open the plan at Docs/focusflow-plan.html and implement Phase 4 (Notifications and sound): permission flow on first start, a WebAudio chime, and a tab-title flash on interval end. Update #plan-state." },
+    "phase5": { "start": "Open the plan at Docs/focusflow-plan.html and implement Phase 5 (Polish and PWA): keyboard shortcuts, a persisted theme toggle, manifest plus service worker for offline, and a favicon progress ring. Update #plan-state." }
+  }
+}
 </script>
 
 <script>
 (function () {
   // ── Config ──
-  var TKEY = '{{KEBAB_TITLE}}-theme';     // localStorage: theme preference
-  var SKEY = '{{KEBAB_TITLE}}-scroll';    // sessionStorage: scroll Y across reload
-  var ids = ['sectionA' /*, 'sectionB', ... */]; // EXACTLY the tracked section ids
+  var TKEY = 'focusflow-plan-theme';     // localStorage: theme preference
+  var SKEY = 'focusflow-plan-scroll';    // sessionStorage: scroll Y across reload
+  var ids = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5']; // EXACTLY the tracked section ids
   var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
   var RELOAD_MS = 4000;
 
