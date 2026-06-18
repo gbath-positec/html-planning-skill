@@ -33,7 +33,9 @@ This **complements** the plan-mode markdown plan file — it does not replace it
 
 4. **Save** to the repo's `Docs/` folder (create it if missing) as `Docs/<kebab-title>-plan.html`. If there is no `Docs/` folder and no obvious docs location, save to the repo root.
 
-5. **Open in Chrome — dedicated "plans" window, new tab — and VERIFY it actually surfaced.** This workspace is Windows. All plans open in a **dedicated Chrome instance** pinned to its own profile directory, so every plan lands in the same window: the first plan of a session opens that window, each later plan opens as a **new tab** in it, and it never mixes into your regular browsing windows. Use the **PowerShell tool** with `Start-Process chrome` + a fixed `--user-data-dir`. Do NOT use `cmd /c start chrome <url>`.
+5. **Ensure the plan-aware SessionStart hook is installed** (one-time per repo). This makes every future Claude session in this repo — including ones the plan's "⏩ Continue plan" deep link opens — wake up already knowing the newest plan's `#plan-state`. Read `assets/session-start-hook.json` from this skill directory and **merge** its `hooks.SessionStart` entry into the repo's `.claude/settings.json` (create the file if missing; preserve any existing settings; if a SessionStart hook with this same command is already present, do nothing — it's idempotent). The hook is self-contained PowerShell (no `jq`/node), auto-discovers the newest `Docs/*-plan.html`, and **stays silent when that plan is 100% done**, so it never nags on finished work. **First-time caveat:** a hook written into a brand-new `.claude/settings.json` only takes effect after the user opens `/hooks` once or restarts Claude Code — the settings watcher doesn't pick up a `.claude/` directory that had no settings file when the session started. Say so when you install it the first time. See **Plan-aware sessions** below.
+
+6. **Open in Chrome — dedicated "plans" window, new tab — and VERIFY it actually surfaced.** This workspace is Windows. All plans open in a **dedicated Chrome instance** pinned to its own profile directory, so every plan lands in the same window: the first plan of a session opens that window, each later plan opens as a **new tab** in it, and it never mixes into your regular browsing windows. Use the **PowerShell tool** with `Start-Process chrome` + a fixed `--user-data-dir`. Do NOT use `cmd /c start chrome <url>`.
    ```powershell
    $url = "file:///<ABSOLUTE/forward-slash/path>.html"
    $planProfile = "$env:USERPROFILE\.plan-chrome"   # dedicated profile dir for plans (reused across plans)
@@ -45,7 +47,7 @@ This **complements** the plan-mode markdown plan file — it does not replace it
    ```
    **Confirm it opened** by checking a window title matching the doc's `<title>` appears. Note: only the **first** plan of a session starts a new chrome process for this profile; later plans open as tabs in that same window, so the process count won't keep rising — that's expected, not a failure. The plans profile is intentionally separate from your normal Chrome (its own extensions/logins/history). If no matching window/process appears at all afterward, report that — don't claim success on exit code alone. (If Chrome isn't installed, fall back to `Start-Process $url` for the default browser. macOS: `open -na "Google Chrome" --args --user-data-dir="$HOME/.plan-chrome" <path>`; Linux: `google-chrome --user-data-dir="$HOME/.plan-chrome" <path>`.)
 
-6. **Tell the user** the file path, that it's been opened (with the verification result), and that it auto-refreshes every ~4s as you update progress.
+7. **Tell the user** the file path, that it's been opened (with the verification result), and that it auto-refreshes every ~4s as you update progress.
 
 ## Diagrams (use them generously)
 
@@ -133,6 +135,13 @@ All optional and back-compatible; omit any you don't use and the plan renders as
   `data-steps="<id>"` (e.g. `<ol class="steps" data-steps="phase1">`). The value is either a
   **number** (first N `<li>` are done) or an **array of 0-based indices** (`[0,2]`). Done items
   get a ✓ and dim; a `n / total` sub-bar appears in the phase header (`total` = list length).
+- **Sidebar sub-steps (automatic).** When a tracked phase contains an `<ol class="steps">`, its
+  steps also render as a nested, collapsible sub-list under that phase's sidebar link — labels
+  derived from each step's bold lead. Per-step dots turn green from the same `steps` data; the
+  `doing` phase's first not-done step shows amber. The active phase auto-expands (on load the
+  `doing` phase; on scroll whichever phase you reach — one open at a time), a chevron toggles a
+  phase manually, and clicking a sub-step jumps to that exact step in the body. No extra
+  authoring — it's driven by the step list you already wrote plus the existing `steps` field.
 - **`times`** — optional per-phase `{ start, end }` time strings shown as a muted line under the
   phase title. You supply the strings (the page can't know wall-clock for past events).
 - **`log`** — an array of `{ t, text }` entries rendered as a timeline in the `#activity`
@@ -145,13 +154,13 @@ The template ships these for whoever opens the plan; they persist across the 4s 
 - **🔔 Notify me** (sidebar) — opt-in desktop notification + soft chime when you set `waiting`
   or the plan hits 100%. Requires a one-time permission click; falls back to the banner + tab
   title if the browser blocks notifications (e.g. on the `file://` origin).
-- **Collapse** chevrons per phase, a **To do / Doing / Done filter**, **j / k** keyboard jump,
-  and a right-edge **mini-map** of section status — all for navigating large plans.
+- **Collapse** chevrons per phase, a **To do / Doing / Done filter**, and **j / k** keyboard
+  jump — all for navigating large plans.
 
 ## Deep-link actions (turn the plan into a control surface)
 
 A plan can carry **deep-link buttons** that launch Claude Code straight from the doc — open the
-repo, start/verify a phase, continue the plan, or let the user **answer the plan's own question**
+repo, start a phase, continue the plan, or let the user **answer the plan's own question**
 by clicking an option. Buttons are **injected by the template's JS from `#plan-state`** — you add
 data, not markup. The whole feature is **opt-in: nothing renders unless you add a `deepLinks`
 block.** When you do, it's on by default (hero + per-phase buttons appear automatically).
@@ -164,7 +173,7 @@ block.** When you do, it's on by default (hero + per-phase buttons appear automa
     "planPath": "Docs/my-plan.html"               // used by the "Continue plan" / answer buttons
   },
   "actions": {
-    "phase1": { "start": "Implement Phase 1 …", "verify": "Run Phase 1's tests …" },
+    "phase1": { "start": "Implement Phase 1 …" },
     "phase2": { "start": "Implement Phase 2 …" }
   }
 }
@@ -173,8 +182,8 @@ block.** When you do, it's on by default (hero + per-phase buttons appear automa
 **What renders:**
 - **Hero** — "⚡ Open repo in Claude Code" (uses `cwd`) and, when `planPath` is set, "⏩ Continue
   plan" (prompts Claude to open the plan and execute the next not-done phase).
-- **Per phase** — "▶ Start in Claude Code" and "✓ Verify" for any tracked id present in `actions`,
-  injected into that phase's header.
+- **Per phase** — "▶ Start in Claude Code" for any tracked id present in `actions`, injected into
+  that phase's header.
 - **Waiting banner** — see `waiting.options` below.
 
 **Filling it in:**
@@ -184,8 +193,8 @@ block.** When you do, it's on by default (hero + per-phase buttons appear automa
   backslashes (`C:\\Users\\you\\repo`)** — a single-backslash JSON string corrupts the path and the
   launched terminal can't `cd`, so it flashes shut. Avoid raw double-quotes in prompt text (the
   template uses parens) — they can break a shell handoff.
-- **Prompts (`actions[id].start` / `.verify`)** — capped at **5,000 chars**. For long work don't
-  inline it — point Claude at the plan: *"Open the plan at `planPath` and implement Phase 2."*
+- **Prompts (`actions[id].start`)** — capped at **5,000 chars**. For long work don't inline it —
+  point Claude at the plan: *"Open the plan at `planPath` and implement Phase 2."*
 - **Select/Answer** open a fresh session whose prompt says "open the plan at `planPath` and
   continue" so context is reloaded from the doc.
 - **Reliability** — needs the `claude-cli://` handler registered (Claude Code **v2.1.91+**,
@@ -223,3 +232,25 @@ always added too. This is the async counterpart to the ⏳ banner — ideal for 
 - Schemes work from a **local `file://`** page in Chrome (our case) but are **stripped by GitHub's
   Markdown** — so these buttons are for the opened doc, not for pasting into a README.
 - Prompts are **inert until Enter**; a session shows a "Prompt from an external link" warning.
+
+## Plan-aware sessions (SessionStart hook)
+
+The "⏩ Continue plan" deep link opens a **fresh** Claude session, which on its own knows nothing
+about the conversation that produced the plan — the `q=` prompt just asks Claude to go read the
+file. The SessionStart hook (`assets/session-start-hook.json`, installed in **step 5**) closes that
+gap from the other direction: on **every** session start in the repo it finds the newest
+`Docs/*-plan.html`, reads its `#plan-state`, and **injects the plan path + current status into the
+session as context** (via `hookSpecificOutput.additionalContext`). A resumed session then already
+knows which phases are done, which is in progress, and any pending `waiting` question — without
+being told. The hook *reads* the plan; the plan's buttons don't reference the hook — they're
+**decoupled**, and either works without the other.
+
+- **Read-only & quiet.** It only reads files and prints context; it never writes. It emits
+  **nothing** when the newest plan's tracked statuses are all `"done"`, so finished work doesn't
+  clutter unrelated sessions. A not-yet-started plan (empty `status`) still surfaces.
+- **One install per repo, generic forever.** Written once into `.claude/settings.json`, it
+  auto-discovers whatever the current newest plan is — making a new plan needs no hook changes.
+- **Windows / PowerShell, dependency-free.** Uses `shell: "powershell"`, no `jq`/node. On
+  macOS/Linux, port the one-liner to bash; the surrounding JSON shape is identical.
+- **Watcher caveat.** If `.claude/settings.json` didn't exist when the session started, the new
+  hook won't fire until the user opens `/hooks` once or restarts. Tell them on first install.
