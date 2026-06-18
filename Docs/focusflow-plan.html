@@ -1235,6 +1235,42 @@
     });
   })();
 
+  // ── Sub-step accordion: one open at a time (doing on load, scroll override, manual pin) ──
+  (function () {
+    var subs = {};
+    [].slice.call(document.querySelectorAll('nav.toc .toc-sub')).forEach(function (ul) { subs[ul.getAttribute('data-sub')] = ul; });
+    if (!Object.keys(subs).length) return;
+    var PINKEY = TKEY.replace('-theme', '-subpin');
+    var pinned = null; try { pinned = sessionStorage.getItem(PINKEY) || null; } catch (e) {}
+    function linkFor(id) { return document.querySelector('nav.toc a[data-track="' + id + '"]'); }
+    function setOpen(id) {
+      Object.keys(subs).forEach(function (k) {
+        var on = (k === id);
+        subs[k].classList.toggle('open', on);
+        var l = linkFor(k); if (l) l.classList.toggle('sub-open', on);
+      });
+    }
+    var doingId = null; for (var i = 0; i < ids.length; i++) { if (st(ids[i]) === 'doing') { doingId = ids[i]; break; } }
+    var initial = (pinned && subs[pinned]) ? pinned : doingId;
+    if (initial) setOpen(initial);
+    Object.keys(subs).forEach(function (id) {
+      var l = linkFor(id); if (!l) return;
+      var chev = l.querySelector('.toc-chev'); if (!chev) return;
+      chev.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var willOpen = !subs[id].classList.contains('open');
+        setOpen(willOpen ? id : null);
+        pinned = willOpen ? id : null;
+        try { if (pinned) sessionStorage.setItem(PINKEY, pinned); else sessionStorage.removeItem(PINKEY); } catch (e2) {}
+      });
+    });
+    window.__subStepOnActive = function (id) {
+      if (!subs[id]) return;
+      if (pinned && pinned !== id) { pinned = null; try { sessionStorage.removeItem(PINKEY); } catch (e) {} }
+      if (!pinned) setOpen(id);
+    };
+  })();
+
   // ── Scroll-spy ──
   var links = {};
   document.querySelectorAll('nav.toc a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
@@ -1243,6 +1279,7 @@
       if (en.isIntersecting) {
         Object.values(links).forEach(function (a) { a.classList.remove('active'); });
         var a = links[en.target.id]; if (a) a.classList.add('active');
+        if (window.__subStepOnActive) window.__subStepOnActive(en.target.id);
       }
     });
   }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
