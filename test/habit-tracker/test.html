@@ -29,6 +29,31 @@ assert(/^\d{4}-\d{2}-\d{2}$/.test(todayKey()), 'todayKey format');
 assertEqual(keyForOffset(0), todayKey(), 'offset 0 is today');
 assertEqual(lastNDays(3).length, 3, 'lastNDays length');
 assertEqual(lastNDays(3)[2], todayKey(), 'lastNDays ends today');
+
+// ---- store (paste of index.html implementation; in-memory backing) ----
+function defaultState(){ return {version:1, habits:[], completions:{}}; }
+function migrate(raw){
+  if(raw && raw.version===1 && Array.isArray(raw.habits) && raw.completions) return raw;
+  return defaultState();
+}
+function makeStore(backing){
+  return {
+    load(){ try { return migrate(JSON.parse(backing.get())); } catch(e){ return defaultState(); } },
+    save(s){ backing.set(JSON.stringify(s)); }
+  };
+}
+
+// ---- tests: store ----
+let mem = { _v: null, get(){return this._v}, set(v){this._v=v} };
+let s = makeStore(mem);
+assertEqual(s.load(), defaultState(), 'load empty -> default');
+mem._v = '{not json';
+assertEqual(s.load(), defaultState(), 'load corrupt -> default');
+mem._v = JSON.stringify({version:0});
+assertEqual(s.load(), defaultState(), 'load old version -> default');
+const good = {version:1, habits:[{id:'a',name:'X',emoji:'',color:'',createdAt:'',order:0}], completions:{a:{}}};
+mem._v = JSON.stringify(good);
+assertEqual(s.load(), good, 'load valid -> roundtrip');
 report();
 </script>
 </body></html>
