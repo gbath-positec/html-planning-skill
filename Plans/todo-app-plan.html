@@ -1,10 +1,42 @@
 <!DOCTYPE html>
+<!--
+  HTML PLAN TEMPLATE
+  ------------------
+  Fill in the CONTENT only. Do NOT rewrite the <style> or <script> blocks.
+
+  Wiring rules (keep these consistent or the tracker breaks):
+   • Each TRACKED build section needs a stable id, e.g. id="phase2".
+   • That id must appear as data-track="<id>" in THREE places:
+       1) the sidebar nav link,  2) the roadmap node,  3) the section's .status pill.
+   • List every tracked id in the script's `ids = [...]` array (bottom of file).
+   • Reference sections (context, critical files, verification, deferred) use
+     class="card plain" and have NO status pill / no data-track.
+
+  Component cheatsheet (all defined in <style>):
+   • <section class="card phase">         tracked build section (violet accent)
+   • <section class="card phase" data-accent="green|blue">   recolor the left accent
+   • <section class="card plain">          reference section
+   • <div class="callout [warn|ok]">       highlighted note
+
+  Diagrams — REACH FOR THESE OFTEN (a diagram beats a paragraph for flows, models,
+  sequences, choices, hierarchies). All live inside <div class="diagram"> with a .dg-title:
+   • .flow     horizontal pipeline of .node boxes joined by .arrow (→); .node.q / .node.hl /
+               .node.ans tint cyan / accent / green. Use for data flow, request lifecycle, q→answer.
+   • .schema   record/table mock: .row > .col-name / .col-type / .col-note. Use for data models.
+   • .tree     file tree / decomposition; author with ├─ └─ │ + indent; <span class="dir">,
+               <span class="nm">, <small> color dirs / files / notes.
+  Standalone (no .diagram wrapper needed):
+   • <ol class="steps">  numbered vertical procedure with a connecting rail (ordered steps).
+   • <div class="compare"> > div.good / .bad / .pick (each with a .ct label)  side-by-side
+               comparison cards (before/after, option A vs B, trade-offs).
+   • <table>, <ul>, <ol>, <code>, .pill, .chip, .legend
+-->
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Habit Tracker — Implementation Plan</title>
-<script>try{var _t=localStorage.getItem('habit-tracker-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<title>Todo App — Build Plan</title>
+<script>try{var _t=localStorage.getItem('todo-app-plan-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <style>
   :root {
     --bg: #0b0d12;
@@ -104,27 +136,6 @@
   nav.toc a[data-st="doing"] .mk { background: var(--amber); }
   nav.toc a[data-st="done"] .mk { background: var(--green); }
   .toc-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); margin: 18px 0 6px 10px; }
-
-  /* ── Sidebar sub-steps (nested under each phase link) ── */
-  nav.toc .toc-sub { list-style: none; margin: 0 0 2px; padding: 0 0 0 17px; overflow: hidden;
-    max-height: 0; opacity: 0; transition: max-height .28s cubic-bezier(.2,.7,.2,1), opacity .18s; }
-  nav.toc .toc-sub.open { max-height: 420px; opacity: 1; }
-  nav.toc .toc-sub a { font-size: 12px; padding: 4px 10px 4px 6px; color: var(--faint);
-    border-left: 2px solid transparent; gap: 8px; }
-  nav.toc .toc-sub a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
-  nav.toc .toc-sub a .sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--border);
-    flex: none; transition: background .2s, box-shadow .2s; }
-  nav.toc .toc-sub a[data-sst="done"] { color: var(--muted); }
-  nav.toc .toc-sub a[data-sst="done"] .sdot { background: var(--green); box-shadow: 0 0 6px var(--green); }
-  nav.toc .toc-sub a[data-sst="current"] .sdot { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-  nav.toc .toc-sub a .slabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  nav.toc a .toc-chev { margin-left: auto; flex: none; font-size: 9px; color: var(--faint);
-    cursor: pointer; padding: 2px 5px; transition: transform .2s; }
-  nav.toc a.sub-open .toc-chev { transform: rotate(90deg); }
-  @keyframes step-flash { 0% { background: color-mix(in srgb, var(--accent) 32%, transparent); }
-    100% { background: transparent; } }
-  .steps li.flash { animation: step-flash 1.4s ease-out; border-radius: 6px; }
-  @media (prefers-reduced-motion: reduce) { .steps li.flash { animation: none; } nav.toc .toc-sub { transition: none; } }
 
   .theme-btn {
     margin-top: 22px; width: 100%; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--muted);
@@ -408,30 +419,28 @@
 
   <!-- ───────── Sidebar ───────── -->
   <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><b>Habit Tracker</b></div>
-    <div class="brand-sub">⎇ deep-links · single-file app</div>
+    <div class="brand"><span class="dot"></span><b>Todo App</b></div>
+    <div class="brand-sub">⎇ main · test/todo-app</div>
 
     <div class="ring-wrap">
       <div class="ring" id="ring"><span id="ring-pct">0%</span></div>
-      <div class="ring-meta"><b id="ring-count">0 / 8</b><span>build tasks done</span></div>
+      <div class="ring-meta"><b id="ring-count">0 / 6</b><span>build sections done</span></div>
     </div>
 
     <div class="toc-label">Plan</div>
     <nav class="toc" id="toc">
-      <a href="#t1" data-track="t1"><span class="mk"></span>1 · Skeleton + dates</a>
-      <a href="#t2" data-track="t2"><span class="mk"></span>2 · Store</a>
-      <a href="#t3" data-track="t3"><span class="mk"></span>3 · Model ops</a>
-      <a href="#t4" data-track="t4"><span class="mk"></span>4 · Streaks</a>
-      <a href="#t5" data-track="t5"><span class="mk"></span>5 · Today view</a>
-      <a href="#t6" data-track="t6"><span class="mk"></span>6 · Add form</a>
-      <a href="#t7" data-track="t7"><span class="mk"></span>7 · History view</a>
-      <a href="#t8" data-track="t8"><span class="mk"></span>8 · Reorder + polish</a>
+      <a href="#phase1" data-track="phase1"><span class="mk"></span>1 · Scaffold</a>
+      <a href="#phase2" data-track="phase2"><span class="mk"></span>2 · Data + storage</a>
+      <a href="#phase3" data-track="phase3"><span class="mk"></span>3 · Render + add</a>
+      <a href="#phase4" data-track="phase4"><span class="mk"></span>4 · Toggle + delete</a>
+      <a href="#phase5" data-track="phase5"><span class="mk"></span>5 · Filters + count</a>
+      <a href="#phase6" data-track="phase6"><span class="mk"></span>6 · Polish</a>
     </nav>
     <div class="toc-label">Reference</div>
     <nav class="toc">
-      <a href="#model"><span class="mk" style="background:transparent"></span>Data model</a>
-      <a href="#critical"><span class="mk" style="background:transparent"></span>File map</a>
+      <a href="#critical"><span class="mk" style="background:transparent"></span>Critical files</a>
       <a href="#verify"><span class="mk" style="background:transparent"></span>Verification</a>
+      <a href="#deferred"><span class="mk" style="background:transparent"></span>Deferred</a>
       <a href="#activity"><span class="mk" style="background:transparent"></span>Activity log</a>
     </nav>
 
@@ -451,28 +460,40 @@
   <main class="main">
 
     <header class="hero">
-      <div class="eyebrow">Implementation Plan · 2026-06-18</div>
-      <h1>Habit Tracker</h1>
-      <p>A single-page, dependency-free habit tracker. Check habits off once per day, drill into any habit for a 90-day history grid and streak stats — all saved in localStorage, all in one HTML file.</p>
+      <div class="eyebrow">Implementation Plan</div>
+      <h1>Todo App — Vanilla JS</h1>
+      <p>A tiny no-framework todo app (add · complete · delete · filter · persist) built in <code>test/todo-app/</code>. This plan is also a live test rig for every html-plan feature.</p>
       <div class="chips">
-        <span class="chip">✦ <b>1 file</b>, no build</span>
-        <span class="chip">✦ <b>vanilla</b> JS</span>
-        <span class="chip">✦ <b>localStorage</b> persistence</span>
-        <span class="chip">✦ <b>TDD</b> in test.html</span>
-        <span class="chip">✦ <b>8</b> tasks</span>
+        <span class="chip">stack: <b>HTML + CSS + vanilla JS</b></span>
+        <span class="chip">files: <b>3</b></span>
+        <span class="chip">persistence: <b>localStorage</b></span>
+        <span class="chip">deps: <b>none</b></span>
+        <span class="chip">phases: <b>6</b></span>
       </div>
     </header>
 
-    <!-- Roadmap: one node per tracked task -->
+    <!-- App data-flow — the one-liner mental model -->
+    <div class="diagram">
+      <div class="dg-title">App data flow</div>
+      <div class="flow">
+        <div class="col"><div class="node q"><b>UI event</b><small>add / toggle / delete / filter</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node hl"><b>mutate state</b><small>todos[] in memory</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node"><b>save()</b><small>localStorage</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node ans"><b>render()</b><small>rebuild list + count</small></div></div>
+      </div>
+    </div>
+
+    <!-- Roadmap: one node per tracked section, data-track must match. -->
     <div class="roadmap" id="roadmap">
-      <a class="rm-node" href="#t1" data-track="t1"><div class="rm-num">1</div><div class="rm-label">Skeleton + dates</div></a>
-      <a class="rm-node" href="#t2" data-track="t2"><div class="rm-num">2</div><div class="rm-label">Store</div></a>
-      <a class="rm-node" href="#t3" data-track="t3"><div class="rm-num">3</div><div class="rm-label">Model ops</div></a>
-      <a class="rm-node" href="#t4" data-track="t4"><div class="rm-num">4</div><div class="rm-label">Streaks</div></a>
-      <a class="rm-node" href="#t5" data-track="t5"><div class="rm-num">5</div><div class="rm-label">Today view</div></a>
-      <a class="rm-node" href="#t6" data-track="t6"><div class="rm-num">6</div><div class="rm-label">Add form</div></a>
-      <a class="rm-node" href="#t7" data-track="t7"><div class="rm-num">7</div><div class="rm-label">History view</div></a>
-      <a class="rm-node" href="#t8" data-track="t8"><div class="rm-num">8</div><div class="rm-label">Reorder + polish</div></a>
+      <a class="rm-node" href="#phase1" data-track="phase1"><div class="rm-num">1</div><div class="rm-label">Scaffold</div></a>
+      <a class="rm-node" href="#phase2" data-track="phase2"><div class="rm-num">2</div><div class="rm-label">Data + storage</div></a>
+      <a class="rm-node" href="#phase3" data-track="phase3"><div class="rm-num">3</div><div class="rm-label">Render + add</div></a>
+      <a class="rm-node" href="#phase4" data-track="phase4"><div class="rm-num">4</div><div class="rm-label">Toggle + delete</div></a>
+      <a class="rm-node" href="#phase5" data-track="phase5"><div class="rm-num">5</div><div class="rm-label">Filters + count</div></a>
+      <a class="rm-node" href="#phase6" data-track="phase6"><div class="rm-num">6</div><div class="rm-label">Polish</div></a>
     </div>
     <div class="legend">
       <span><i style="background:var(--border)"></i> To do</span>
@@ -481,281 +502,261 @@
       <span style="color:var(--faint)">— status reflects implementation progress; roadmap &amp; sidebar mirror it</span>
     </div>
 
-    <div class="callout">
-      <strong>Build order matters.</strong> Tasks 1–4 are pure logic, fully unit-tested in <code>test.html</code> before any UI exists. Tasks 5–8 wire that logic into the DOM. Each task ends with a passing test (or acceptance run) and a commit.
-    </div>
-
-    <!-- ───────── Architecture flow diagram ───────── -->
-    <div class="diagram">
-      <div class="dg-title">Data flow — one direction, re-render from state</div>
-      <div class="flow">
-        <div class="col"><div class="node q"><b>User action</b><small>toggle / add</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node"><b>model fn</b><small>pure, returns new state</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node hl"><b>setState</b><small>save + re-render</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node"><b>store.save</b><small>localStorage</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node ans"><b>renderApp</b><small>paint #app</small></div></div>
-      </div>
-    </div>
-
-    <!-- ═════════ TASK 1 ═════════ -->
-    <section id="t1" class="card phase" data-accent="green">
+    <!-- ═══════════ PHASE 1 ═══════════ -->
+    <section id="phase1" class="card phase" data-accent="blue">
       <div class="sec-head">
         <div class="titles">
-          <div class="sec-kicker">Task 1 · Foundation</div>
-          <h2>Project skeleton + date helpers</h2>
+          <div class="sec-kicker">Phase 1 · Foundation</div>
+          <h2>Scaffold <span class="muted-tail">— files + page shell</span></h2>
         </div>
-        <button class="status" data-track="t1">To do</button>
+        <button class="status" data-track="phase1">To do</button>
       </div>
-      <p>Create <code>index.html</code> (shell + inline CSS/JS) and <code>test.html</code> (tiny assert harness). Establish the local <code>YYYY-MM-DD</code> date functions everything else depends on — no timezone drift.</p>
-      <p><strong>Produces:</strong> <code>dateKey(d)</code>, <code>todayKey()</code>, <code>keyForOffset(n)</code>, <code>lastNDays(n)</code>.</p>
-      <ol class="steps" data-steps="t1">
-        <li><b>Write the failing test.</b> Build the assert/assertEqual harness in <code>test.html</code> and add date tests (padding, format, offset 0 = today, lastNDays length/end).</li>
-        <li><b>Run to verify it fails.</b> Confirm <code>index.html</code> doesn't yet exist.</li>
-        <li><b>Implement.</b> Create <code>index.html</code> skeleton with the four date helpers in its script.</li>
-        <li><b>Run to verify it passes.</b> Reload <code>test.html</code> → 6/6 passed.</li>
-        <li><b>Commit.</b> <code>feat: habit tracker skeleton + date helpers</code></li>
+      <p>Lay down the three files and a semantic page shell. No logic yet — just structure the app will hang off.</p>
+      <ol class="steps" data-steps="phase1">
+        <li><b>Create the files.</b> <code>index.html</code>, <code>styles.css</code>, <code>app.js</code> in <code>test/todo-app/</code>.</li>
+        <li><b>HTML shell.</b> <code>&lt;header&gt;</code> title, a form with text <code>&lt;input&gt;</code> + Add button, an empty <code>&lt;ul id="list"&gt;</code>, a footer with count + filters.</li>
+        <li><b>Wire assets.</b> Link <code>styles.css</code> in <code>&lt;head&gt;</code> and <code>app.js</code> with <code>defer</code>.</li>
+        <li><b>Smoke check.</b> Open the page — shell renders, no console errors.</li>
       </ol>
-      <div class="callout warn"><strong>Date keys are local, never UTC.</strong> <code>dateKey</code> builds the string from <code>getFullYear/Month/Date</code> with zero-padding — using <code>toISOString()</code> would shift days across timezones and corrupt streaks.</div>
+      <div class="callout">Plain semantic HTML — a <code>&lt;form&gt;</code> so Enter submits for free, one <code>&lt;ul&gt;</code> we re-render from state.</div>
     </section>
 
-    <!-- ═════════ TASK 2 ═════════ -->
-    <section id="t2" class="card phase" data-accent="green">
+    <!-- ═══════════ PHASE 2 ═══════════ -->
+    <section id="phase2" class="card phase">
       <div class="sec-head">
         <div class="titles">
-          <div class="sec-kicker">Task 2 · Persistence</div>
-          <h2>Store — load / save / migrate</h2>
+          <div class="sec-kicker">Phase 2 · Data</div>
+          <h2>Data model + storage <span class="muted-tail">— state that survives reload</span></h2>
         </div>
-        <button class="status" data-track="t2">To do</button>
+        <button class="status" data-track="phase2">To do</button>
       </div>
-      <p>Wrap localStorage with a corruption guard. A bad/missing/old payload returns a fresh default state instead of throwing.</p>
-      <p><strong>Produces:</strong> <code>defaultState()</code>, <code>store.load()</code>, <code>store.save(state)</code>, <code>migrate(raw)</code>. Key: <code>habit-tracker-v1</code>.</p>
-      <ol class="steps" data-steps="t2">
-        <li><b>Write the failing test.</b> Use an in-memory backing fake; assert empty/corrupt/old-version all return default, and valid state round-trips.</li>
-        <li><b>Run to verify it fails.</b> Confirm store functions absent.</li>
-        <li><b>Implement.</b> Add <code>defaultState</code>, <code>migrate</code>, and <code>store</code> (try/catch around <code>JSON.parse</code>) to <code>index.html</code>.</li>
-        <li><b>Run to verify it passes.</b> All store tests green.</li>
-        <li><b>Commit.</b> <code>feat: localStorage store with migrate + corruption guard</code></li>
-      </ol>
-    </section>
-
-    <!-- ═════════ TASK 3 ═════════ -->
-    <section id="t3" class="card phase">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Task 3 · Domain logic</div>
-          <h2>Model operations <span class="muted-tail">— pure, immutable</span></h2>
-        </div>
-        <button class="status" data-track="t3">To do</button>
-      </div>
-      <p>All habit/completion mutations as pure functions: take state, return new state, never mutate the input.</p>
-      <p><strong>Produces:</strong> <code>addHabit</code>, <code>renameHabit</code>, <code>deleteHabit</code>, <code>reorderHabit</code>, <code>toggleCompletion(state,id,key)</code>, <code>isDone(state,id,key)</code>.</p>
-      <ol class="steps" data-steps="t3">
-        <li><b>Write the failing test.</b> Add → rename → toggle on/off → delete (asserting completions are dropped too).</li>
-        <li><b>Run to verify it fails.</b> First model assertion errors.</li>
-        <li><b>Implement.</b> Add the six pure functions (real <code>addHabit</code> uses <code>crypto.randomUUID</code>).</li>
-        <li><b>Run to verify it passes.</b> All model tests green.</li>
-        <li><b>Commit.</b> <code>feat: pure model operations for habits + completions</code></li>
-      </ol>
-    </section>
-
-    <!-- ═════════ TASK 4 ═════════ -->
-    <section id="t4" class="card phase">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Task 4 · Domain logic</div>
-          <h2>Streak calculations</h2>
-        </div>
-        <button class="status" data-track="t4">To do</button>
-      </div>
-      <p>Two derived metrics over a habit's completions.</p>
+      <p>Define the todo shape and the load/save round-trip. One in-memory array is the source of truth; localStorage is the mirror.</p>
       <div class="diagram">
-        <div class="dg-title">Streak rules</div>
-        <div class="flow">
-          <div class="col"><div class="node q"><b>streakCurrent</b><small>start today if done,<br>else yesterday</small></div></div>
-          <div class="arrow">→</div>
-          <div class="col"><div class="node"><b>count back</b><small>while consecutive<br>days are done</small></div></div>
-          <div class="arrow">→</div>
-          <div class="col"><div class="node ans"><b>run length</b><small>ending today or<br>yesterday</small></div></div>
-        </div>
-      </div>
-      <p><strong>Produces:</strong> <code>streakCurrent(state,id)</code>, <code>streakLongest(state,id)</code> (scans last 365 days).</p>
-      <ol class="steps" data-steps="t4">
-        <li><b>Write the failing test.</b> Cover: ending today (2), ending yesterday (2), gap breaks (1), empty (0), longest run in the past (3).</li>
-        <li><b>Run to verify it fails.</b> Streak fns undefined.</li>
-        <li><b>Implement.</b> Add <code>streakCurrent</code> and <code>streakLongest</code>.</li>
-        <li><b>Run to verify it passes.</b> All streak tests green.</li>
-        <li><b>Commit.</b> <code>feat: current + longest streak calculations</code></li>
-      </ol>
-    </section>
-
-    <!-- ═════════ TASK 5 ═════════ -->
-    <section id="t5" class="card phase" data-accent="blue">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Task 5 · UI</div>
-          <h2>Today view + toggle wiring</h2>
-        </div>
-        <button class="status" data-track="t5">To do</button>
-      </div>
-      <p>First DOM render: today's habits as check-off rows with a streak badge and an "X of Y done" summary. Introduces the <code>state</code>/<code>setState</code>/<code>renderApp</code> loop and delegated click handling. Empty state shows a friendly prompt.</p>
-      <p><strong>Acceptance (manual):</strong> add "Read" → row appears unchecked, streak 0; toggle → fills, summary 1 of 1, streak 1; reload persists.</p>
-      <ol class="steps" data-steps="t5">
-        <li><b>Define acceptance.</b> Document the 4-step manual run (empty → add → toggle → reload).</li>
-        <li><b>Establish baseline.</b> Open <code>index.html</code>; blank <code>#app</code>.</li>
-        <li><b>Implement.</b> Add <code>state</code>/<code>setState</code>, <code>renderToday</code>, <code>renderApp</code>, CSS, click delegation + temporary <code>prompt()</code> add.</li>
-        <li><b>Run acceptance steps.</b> All four behave; reload persists.</li>
-        <li><b>Commit.</b> <code>feat: today view rendering, toggle + add wiring</code></li>
-      </ol>
-    </section>
-
-    <!-- ═════════ TASK 6 ═════════ -->
-    <section id="t6" class="card phase" data-accent="blue">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Task 6 · UI</div>
-          <h2>Add-habit form <span class="muted-tail">— emoji + color</span></h2>
-        </div>
-        <button class="status" data-track="t6">To do</button>
-      </div>
-      <p>Replace the <code>prompt()</code> with an inline form: required name, an emoji radio set, and color swatches. The chosen color tints the habit's "on" toggle.</p>
-      <ol class="steps" data-steps="t6">
-        <li><b>Define acceptance.</b> Open form; empty name doesn't add; "Meditate" + 🧘 + green adds with that emoji/color.</li>
-        <li><b>Baseline.</b> Confirm Add currently uses <code>prompt()</code>.</li>
-        <li><b>Implement.</b> Add <code>showAddForm</code> flag, <code>renderAddForm</code>, submit handler, color-tinted toggle, CSS.</li>
-        <li><b>Run acceptance steps.</b> All pass; empty name rejected.</li>
-        <li><b>Commit.</b> <code>feat: inline add-habit form with emoji + color</code></li>
-      </ol>
-    </section>
-
-    <!-- ═════════ TASK 7 ═════════ -->
-    <section id="t7" class="card phase" data-accent="blue">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Task 7 · UI</div>
-          <h2>History view — 90-day grid + manage</h2>
-        </div>
-        <button class="status" data-track="t7">To do</button>
-      </div>
-      <p>Per-habit screen: a 90-day contribution grid (tap a cell to toggle any day), current + longest streak, and rename / delete (with confirm). Back button returns to Today.</p>
-      <div class="callout warn"><strong>Set <code>currentView</code> before <code>setState</code>.</strong> <code>setState</code> calls <code>renderApp</code>, which reads <code>currentView</code> — so cell-toggle/rename set it to History first; delete sets it to Today first.</div>
-      <ol class="steps" data-steps="t7">
-        <li><b>Define acceptance.</b> Open history; toggle a past cell updates streaks; back; rename; delete drops completions.</li>
-        <li><b>Baseline.</b> Click a habit → <code>renderHistory</code> undefined.</li>
-        <li><b>Implement.</b> Add <code>renderHistory</code>, extend click handler (back/cellToggle/rename/delete), grid CSS.</li>
-        <li><b>Run acceptance steps.</b> All five pass; verify delete via reload.</li>
-        <li><b>Commit.</b> <code>feat: per-habit history grid, streak stats, rename/delete</code></li>
-      </ol>
-    </section>
-
-    <!-- ═════════ TASK 8 ═════════ -->
-    <section id="t8" class="card phase">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Task 8 · Polish</div>
-          <h2>Reorder controls + final test</h2>
-        </div>
-        <button class="status" data-track="t8">To do</button>
-      </div>
-      <p>Up/down controls per Today row wired to <code>reorderHabit</code>, plus a reorder unit test (move up, reindex order, top is no-op).</p>
-      <ol class="steps" data-steps="t8">
-        <li><b>Write the failing test.</b> Add A, B; move B up; assert order reindexed and top-move is a no-op.</li>
-        <li><b>Run to verify it fails.</b> Paste real <code>reorderHabit</code> into test scope.</li>
-        <li><b>Implement.</b> Add ▲/▼ controls to the row template + handler branches + CSS.</li>
-        <li><b>Verify.</b> Reorder tests pass; rows reorder and persist in the app.</li>
-        <li><b>Commit.</b> <code>feat: reorder controls + reorder test</code></li>
-      </ol>
-    </section>
-
-    <!-- ───────── REFERENCE: Data model ───────── -->
-    <section id="model" class="card plain">
-      <div class="sec-kicker">Reference</div>
-      <h2>Data model</h2>
-      <p>One object under localStorage key <code>habit-tracker-v1</code>. Completions are keyed for O(1) toggle/lookup and store only <code>true</code> entries.</p>
-      <div class="diagram">
-        <div class="dg-title">state shape</div>
+        <div class="dg-title">todo object</div>
         <div class="schema">
-          <div class="row"><span class="col-name">version</span><span class="col-type">number</span><span class="col-note">schema version (1)</span></div>
-          <div class="row"><span class="col-name">habits[]</span><span class="col-type">Habit[]</span><span class="col-note">ordered list</span></div>
-          <div class="row"><span class="col-name">&nbsp;&nbsp;.id</span><span class="col-type">string</span><span class="col-note">crypto.randomUUID()</span></div>
-          <div class="row"><span class="col-name">&nbsp;&nbsp;.name</span><span class="col-type">string</span><span class="col-note">habit label</span></div>
-          <div class="row"><span class="col-name">&nbsp;&nbsp;.emoji</span><span class="col-type">string</span><span class="col-note">optional icon</span></div>
-          <div class="row"><span class="col-name">&nbsp;&nbsp;.color</span><span class="col-type">string</span><span class="col-note">hex; tints toggle/cells</span></div>
-          <div class="row"><span class="col-name">&nbsp;&nbsp;.order</span><span class="col-type">number</span><span class="col-note">sort index</span></div>
-          <div class="row"><span class="col-name">completions</span><span class="col-type">{ [id]: {key:true} }</span><span class="col-note">key = YYYY-MM-DD</span></div>
+          <div class="row"><span class="col-name">id</span><span class="col-type">string</span><span class="col-note">unique — Date.now()+rand</span></div>
+          <div class="row"><span class="col-name">text</span><span class="col-type">string</span><span class="col-note">trimmed, non-empty</span></div>
+          <div class="row"><span class="col-name">done</span><span class="col-type">boolean</span><span class="col-note">completed flag</span></div>
         </div>
       </div>
+      <div class="compare">
+        <div class="bad"><div class="ct">In-memory only</div><ul><li>Simplest</li><li>Lost on refresh</li></ul></div>
+        <div class="pick"><div class="ct">localStorage (picked)</div><ul><li>Survives reload</li><li>One <code>save()</code> after each mutation</li><li>Still zero deps</li></ul></div>
+      </div>
+      <ol class="steps" data-steps="phase2">
+        <li><b>State.</b> <code>let todos = load()</code>.</li>
+        <li><b>load().</b> Parse <code>localStorage['todos']</code> → array, default <code>[]</code> (guard JSON errors).</li>
+        <li><b>save().</b> <code>localStorage.setItem('todos', JSON.stringify(todos))</code>.</li>
+      </ol>
     </section>
 
-    <!-- ───────── REFERENCE: file map ───────── -->
+    <!-- ═══════════ PHASE 3 ═══════════ -->
+    <section id="phase3" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 3 · Core</div>
+          <h2>Render + add <span class="muted-tail">— see todos, create todos</span></h2>
+        </div>
+        <button class="status" data-track="phase3">To do</button>
+      </div>
+      <p>The render loop and the first mutation. <code>render()</code> rebuilds the list from state; adding pushes, saves, re-renders.</p>
+      <ol class="steps" data-steps="phase3">
+        <li><b>render().</b> Clear <code>#list</code>, build one <code>&lt;li&gt;</code> per todo (checkbox + text + delete).</li>
+        <li><b>Add handler.</b> On form submit: trim input, ignore empty, push a new todo.</li>
+        <li><b>Persist + paint.</b> Call <code>save()</code> then <code>render()</code>; clear the input.</li>
+        <li><b>Initial paint.</b> Call <code>render()</code> once on load.</li>
+      </ol>
+    </section>
+
+    <!-- ═══════════ PHASE 4 ═══════════ -->
+    <section id="phase4" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 4 · Interactions</div>
+          <h2>Toggle + delete <span class="muted-tail">— complete &amp; remove</span></h2>
+        </div>
+        <button class="status" data-track="phase4">To do</button>
+      </div>
+      <p>Make rows interactive via one delegated listener on <code>#list</code> (survives re-renders, no per-row binding).</p>
+      <ol class="steps" data-steps="phase4">
+        <li><b>Delegate.</b> One <code>click</code> listener on <code>#list</code>; read <code>data-id</code> from the row.</li>
+        <li><b>Toggle.</b> Checkbox flips <code>done</code>; completed rows get a strike-through class.</li>
+        <li><b>Delete.</b> The ✕ button filters that id out of <code>todos</code>.</li>
+        <li><b>Persist.</b> Each mutation → <code>save()</code> + <code>render()</code>.</li>
+      </ol>
+      <div class="callout warn">Event delegation, not per-row handlers — the list is rebuilt every render, so binding per row would leak listeners.</div>
+    </section>
+
+    <!-- ═══════════ PHASE 5 ═══════════ -->
+    <section id="phase5" class="card phase" data-accent="blue">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 5 · Views</div>
+          <h2>Filters + count <span class="muted-tail">— all / active / completed</span></h2>
+        </div>
+        <button class="status" data-track="phase5">To do</button>
+      </div>
+      <p>A current-filter variable gates what <code>render()</code> shows; the footer reports items left.</p>
+      <table>
+        <tr><th>Filter</th><th>Predicate</th></tr>
+        <tr><td>All</td><td>show every todo</td></tr>
+        <tr><td>Active</td><td><code>!todo.done</code></td></tr>
+        <tr><td>Completed</td><td><code>todo.done</code></td></tr>
+      </table>
+      <ol class="steps" data-steps="phase5">
+        <li><b>Filter state.</b> <code>let filter = 'all'</code>; clicking a filter button sets it + re-renders.</li>
+        <li><b>Apply.</b> <code>render()</code> filters <code>todos</code> by the predicate above.</li>
+        <li><b>Count.</b> Footer shows “N item(s) left” (active count).</li>
+        <li><b>Active styling.</b> Highlight the selected filter button.</li>
+      </ol>
+    </section>
+
+    <!-- ═══════════ PHASE 6 ═══════════ -->
+    <section id="phase6" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 6 · Polish</div>
+          <h2>Polish <span class="muted-tail">— empty state + styling</span></h2>
+        </div>
+        <button class="status" data-track="phase6">To do</button>
+      </div>
+      <ol class="steps" data-steps="phase6">
+        <li><b>Empty state.</b> Friendly message when the (filtered) list is empty.</li>
+        <li><b>Styling pass.</b> Card layout, hover affordances, focus ring on the input.</li>
+        <li><b>Final once-over.</b> Add a few todos, toggle, delete, filter, reload — state persists.</li>
+      </ol>
+      <div class="callout ok">Acceptance: add / complete / delete / filter all work and survive a refresh, with zero dependencies and no console errors.</div>
+    </section>
+
+    <!-- Optional flow diagram pattern:
+    <div class="diagram">
+      <div class="dg-title">Title</div>
+      <div class="flow">
+        <div class="col"><div class="node q"><b>Input</b><small>note</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node hl"><b>Step</b><small>note</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node ans"><b>Output</b><small>note</small></div></div>
+      </div>
+    </div>
+    -->
+
+    <!-- Optional schema/table-model pattern:
+    <div class="diagram">
+      <div class="dg-title">table_name</div>
+      <div class="schema">
+        <div class="row"><span class="col-name">column</span><span class="col-type">type</span><span class="col-note">note</span></div>
+      </div>
+    </div>
+    -->
+
+    <!-- Optional numbered-steps pattern (procedures / ordered work):
+    <ol class="steps">
+      <li><b>Step title.</b> What happens, files touched, etc.</li>
+      <li><b>Next step.</b> …</li>
+    </ol>
+    -->
+
+    <!-- Optional comparison pattern (before/after, option A vs B, trade-offs):
+    <div class="compare">
+      <div class="bad"><div class="ct">Before</div><ul><li>…</li></ul></div>
+      <div class="good"><div class="ct">After</div><ul><li>…</li></ul></div>
+    </div>
+    (use .pick to highlight a chosen option)
+    -->
+
+    <!-- Optional tree pattern (file structure / decomposition):
+    <div class="diagram">
+      <div class="dg-title">repo layout</div>
+      <div class="tree"><span class="dir">lib/</span>
+├─ <span class="nm">search.ts</span>      <small>pgvector similarity</small>
+├─ <span class="dir">tools/</span>
+│  └─ <span class="nm">index.ts</span>    <small>tool registry</small>
+└─ <span class="nm">prisma.ts</span></div>
+    </div>
+    -->
+
+    <!-- ───────── REFERENCE sections (no tracking) ───────── -->
     <section id="critical" class="card plain">
       <div class="sec-kicker">Map</div>
-      <h2>File map</h2>
+      <h2>Critical files</h2>
       <div class="diagram">
-        <div class="dg-title">repo layout</div>
-        <div class="tree"><span class="dir">habit-tracker/</span>
-├─ <span class="nm">index.html</span>   <small>app — inline CSS + JS (all 8 tasks land here)</small>
-└─ <span class="nm">test.html</span>    <small>in-browser assert harness (Tasks 1–4, 8)</small></div>
+        <div class="dg-title">test/todo-app layout</div>
+        <div class="tree"><span class="dir">test/todo-app/</span>
+├─ <span class="nm">index.html</span>   <small>page shell: form, #list, footer</small>
+├─ <span class="nm">styles.css</span>   <small>layout + completed/empty states</small>
+└─ <span class="nm">app.js</span>       <small>state, load/save, render, handlers</small></div>
       </div>
-      <p>Within <code>index.html</code>'s script, sections are ordered: <strong>dates → store → model → streaks → app state/render → events</strong>. Pure logic above, DOM below.</p>
+      <ul>
+        <li><strong>app.js</strong> — the whole brain: <code>todos[]</code>, <code>load/save</code>, <code>render</code>, add/toggle/delete, filter.</li>
+        <li><strong>index.html</strong> — structure only; all behaviour is delegated from <code>app.js</code>.</li>
+      </ul>
     </section>
 
-    <!-- ───────── REFERENCE: verification ───────── -->
     <section id="verify" class="card plain">
       <div class="sec-kicker">Proof</div>
       <h2>Verification</h2>
       <ul>
-        <li><strong>Unit:</strong> open <code>test.html</code> — dates, store, model, streaks, reorder all green (last line shows <code>N/N passed</code>).</li>
-        <li><strong>Acceptance:</strong> open <code>index.html</code> — add habit, toggle today, open history, toggle a past cell, rename, reorder, delete; reload after each to confirm persistence.</li>
-        <li><strong>Resilience:</strong> manually corrupt the localStorage value → app still loads to a fresh empty state (no crash).</li>
+        <li><strong>Add:</strong> type + Enter (and + button) → item appears, input clears.</li>
+        <li><strong>Toggle:</strong> checkbox strikes through; “items left” updates.</li>
+        <li><strong>Delete:</strong> ✕ removes the row.</li>
+        <li><strong>Filter:</strong> All / Active / Completed show the right subset.</li>
+        <li><strong>Persist:</strong> reload the page — todos and their done-state remain.</li>
+        <li><strong>Clean:</strong> no console errors; no network/deps.</li>
       </ul>
-      <div class="callout ok"><strong>Done = all unit tests green + every acceptance path verified after a reload.</strong></div>
     </section>
 
-    <!-- Activity log — auto-rendered from #plan-state `log`; self-hides when empty. -->
+    <section id="deferred" class="card plain deferred">
+      <div class="sec-kicker">Out of scope</div>
+      <h2>Deferred <span class="pill defer">later</span></h2>
+      <ul>
+        <li>Edit-in-place (double-click to rename)</li>
+        <li>Drag-to-reorder</li>
+        <li>Due dates / priorities</li>
+        <li>Clear-completed bulk action</li>
+      </ul>
+    </section>
+
+    <!-- Activity log — auto-rendered from #plan-state `log`; self-hides when the log is empty. -->
     <section id="activity" class="card plain">
       <div class="sec-kicker">Timeline</div>
       <h2>Activity log</h2>
     </section>
 
-    <footer>Habit Tracker — Implementation Plan · single-file, dependency-free · TDD</footer>
+    <footer>Todo App — Build Plan · vanilla JS in test/todo-app · live test of html-plan features · auto-refreshes ~4s</footer>
 
   </main>
 </div>
 
-<!-- ───────── Progress state — the SINGLE source of truth ───────── -->
+<!-- ───────── Progress state — the SINGLE source of truth (Claude edits THIS block) ─────────
+     • Set each tracked id to "todo" | "doing" | "done". Keys MUST match the `ids` array.
+     • The page auto-refreshes every few seconds, so edits here show up on their own. -->
 <script id="plan-state" type="application/json">
 {
-  "status": {
-    "t1": "done", "t2": "done", "t3": "done", "t4": "done",
-    "t5": "done", "t6": "done", "t7": "done", "t8": "done"
-  },
-  "steps": { "t1": 5, "t2": 5, "t3": 5, "t4": 5, "t5": 5, "t6": 5, "t7": 5, "t8": 5 },
-  "decisions": [
-    { "q": "Light or dark theme as the app's default?", "a": "Light" }
-  ],
+  "status": { "phase1": "done", "phase2": "done", "phase3": "done", "phase4": "done", "phase5": "done", "phase6": "done" },
+  "steps": { "phase1": 4, "phase2": 3, "phase3": 4, "phase4": 4, "phase5": 4, "phase6": 3 },
+  "times": { "phase1": { "start": "16:13", "end": "16:14" }, "phase2": { "start": "16:14", "end": "16:16" }, "phase3": { "start": "16:16", "end": "16:18" }, "phase4": { "start": "16:18", "end": "16:20" }, "phase5": { "start": "16:20", "end": "16:22" }, "phase6": { "start": "16:22", "end": "16:25" } },
   "log": [
-    { "t": "2026-06-18", "x": "Decision: app default theme = Light." },
-    { "t": "2026-06-18", "x": "Tasks 1-4 (logic): dates, store, model, streaks — built TDD in test/habit-tracker/, all unit assertions green." },
-    { "t": "2026-06-18", "x": "Tasks 5-7 (UI): today view + toggle, inline add form (emoji/color), history grid + rename/delete — acceptance verified." },
-    { "t": "2026-06-18", "x": "Task 8: reorder controls + reorder test. Full suite green (24/24 vs real logic). All 8 tasks committed." }
+    { "t": "16:13", "text": "Plan rendered; starting Phase 1 (scaffold) in test/todo-app." },
+    { "t": "16:14", "text": "Phase 1 done — index.html, styles.css, app.js scaffolded; shell renders." },
+    { "t": "16:16", "text": "Phase 2 done — todo shape + load()/save() against localStorage (key 'todos')." },
+    { "t": "16:18", "text": "Phase 3 done — render() rebuilds the list; form handler adds todos (XSS-safe textContent)." },
+    { "t": "16:20", "text": "Phase 4 done — toggle + delete via one delegated #list listener." },
+    { "t": "16:22", "text": "Phase 5 done — All/Active/Completed filters + items-left count + empty state. Paused for styling decision." },
+    { "t": "16:24", "text": "Styling direction chosen: Colorful & playful. Resuming Phase 6 (polish)." },
+    { "t": "16:25", "text": "Phase 6 done — colorful/playful styling pass: gradient backdrop, rounded card, custom round checkboxes, pill filters, animated rows, styled empty state. All 6 phases complete." }
   ],
   "deepLinks": {
-    "cwd": "C:/Users/gbath.SURREY/Desktop/html-plan-skill",
-    "planPath": "Docs/habit-tracker-plan.html"
+    "cwd": "C:/Users/gbath.SURREY/Desktop/html-plan-skill/test/todo-app",
+    "planPath": "Plans/todo-app-plan.html"
   },
   "actions": {
-    "t1": { "start": "Open the implementation plan at Docs/habit-tracker-plan.html and implement Task 1 (project skeleton + date helpers) using TDD. Update #plan-state as you go." },
-    "t2": { "start": "Open the implementation plan at Docs/habit-tracker-plan.html and implement Task 2 (localStorage store with migrate + corruption guard) using TDD. Update #plan-state as you go." },
-    "t3": { "start": "Open the implementation plan at Docs/habit-tracker-plan.html and implement Task 3 (pure model operations) using TDD. Update #plan-state as you go." },
-    "t4": { "start": "Open the implementation plan at Docs/habit-tracker-plan.html and implement Task 4 (streak calculations) using TDD. Update #plan-state as you go." },
-    "t5": { "start": "Open the implementation plan at Docs/habit-tracker-plan.html and implement Task 5 (today view + toggle wiring). Update #plan-state as you go." },
-    "t6": { "start": "Open the implementation plan at Docs/habit-tracker-plan.html and implement Task 6 (inline add-habit form). Update #plan-state as you go." },
-    "t7": { "start": "Open the implementation plan at Docs/habit-tracker-plan.html and implement Task 7 (history view + manage). Update #plan-state as you go." },
-    "t8": { "start": "Open the implementation plan at Docs/habit-tracker-plan.html and implement Task 8 (reorder controls + final test). Update #plan-state as you go." }
+    "phase1": { "start": "Open the plan at Plans/todo-app-plan.html and implement Phase 1 (Scaffold): create index.html, styles.css, app.js in test/todo-app with a semantic shell.", "verify": "Open test/todo-app/index.html and confirm the shell renders with no console errors." },
+    "phase2": { "start": "Implement Phase 2 (Data model + storage) from Plans/todo-app-plan.html: todo shape, load() and save() against localStorage.", "verify": "Add a todo, reload, confirm it persists in localStorage." },
+    "phase3": { "start": "Implement Phase 3 (Render + add) from Plans/todo-app-plan.html: render() plus the add-todo form handler.", "verify": "Add a few todos via the input and confirm they render and clear the input." },
+    "phase4": { "start": "Implement Phase 4 (Toggle + delete) from Plans/todo-app-plan.html using one delegated click listener on #list.", "verify": "Toggle and delete todos; confirm state updates and persists." },
+    "phase5": { "start": "Implement Phase 5 (Filters + count) from Plans/todo-app-plan.html: All/Active/Completed plus an items-left count.", "verify": "Exercise each filter and confirm the active-count is correct." },
+    "phase6": { "start": "Implement Phase 6 (Polish) from Plans/todo-app-plan.html: empty state and a styling pass.", "verify": "Full run-through: add/toggle/delete/filter/reload all work with no console errors." }
   }
 }
 </script>
@@ -763,9 +764,9 @@
 <script>
 (function () {
   // ── Config ──
-  var TKEY = 'habit-tracker-theme';     // localStorage: theme preference
-  var SKEY = 'habit-tracker-scroll';    // sessionStorage: scroll Y across reload
-  var ids = ['t1','t2','t3','t4','t5','t6','t7','t8']; // EXACTLY the tracked section ids
+  var TKEY = 'todo-app-plan-theme';     // localStorage: theme preference
+  var SKEY = 'todo-app-plan-scroll';    // sessionStorage: scroll Y across reload
+  var ids = ['phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase6']; // EXACTLY the tracked section ids
   var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
   var RELOAD_MS = 4000;
 
@@ -778,19 +779,21 @@
   function allDone() { return !!ids.length && ids.filter(function (id) { return st(id) === 'done'; }).length >= ids.length; }
 
   // ── Deep-link actions — opt-in. Present only when #plan-state.deepLinks exists. ──
+  //   deepLinks: { cwd, planPath }   actions: { <trackedId>: { start } }
+  //   ccUrl() owns ALL encoding so markup never hand-encodes. Builds claude-cli:// (terminal).
   var deepLinks = (emb && emb.deepLinks && typeof emb.deepLinks === 'object') ? emb.deepLinks : null;
   var actions   = (emb && emb.actions && typeof emb.actions === 'object') ? emb.actions : {};
-  var CC_MAX_Q  = 5000;
+  var CC_MAX_Q  = 5000;   // claude-cli:// `q` hard limit (chars, decoded)
   function ccUrl(opts) {
     opts = opts || {};
     var parts = [];
-    function add(k, v) { if (v != null && v !== '') parts.push(k + '=' + encodeURIComponent(v)); }
+    function add(k, v) { if (v != null && v !== '') parts.push(k + '=' + encodeURIComponent(v)); }  // %0A for newlines, etc.
     var q = opts.q;
     if (typeof q === 'string' && q.length > CC_MAX_Q) {
       try { console.warn('[plan] deep-link prompt is ' + q.length + ' chars (> ' + CC_MAX_Q + '); truncating. Point at the plan file instead.'); } catch (e) {}
       q = q.slice(0, CC_MAX_Q);
     }
-    add('q', q); add('cwd', opts.cwd); add('repo', opts.repo);
+    add('q', q); add('cwd', opts.cwd); add('repo', opts.repo);   // cwd wins over repo per spec
     return 'claude-cli://open' + (parts.length ? '?' + parts.join('&') : '');
   }
   function actUrl(q) { return ccUrl({ q: q, cwd: deepLinks && deepLinks.cwd }); }
@@ -809,7 +812,8 @@
     var rc = document.getElementById('ring-count'); if (rc) rc.textContent = done + ' / ' + ids.length;
   })();
 
-  // ── Deep-link trigger buttons: hero Open/Continue + per-phase Start ──
+  // ── Deep-link trigger buttons (Phase 2): hero Open/Continue + per-phase Start ──
+  //    All injected from #plan-state — no markup needed in the plan body.
   function _ccBtn(cls, icon, label, href) {
     var a = document.createElement('a');
     a.className = 'cc-action' + (cls ? ' ' + cls : '');
@@ -818,10 +822,10 @@
     return a;
   }
   (function () {
-    if (!deepLinks) return;
+    if (!deepLinks) return;                              // feature off unless #plan-state.deepLinks is set
     var cwd = deepLinks.cwd, planPath = deepLinks.planPath;
-    var openUrl = ccUrl({ cwd: cwd, repo: deepLinks.repo });
-    var hero = document.querySelector('.hero');
+    var openUrl = ccUrl({ cwd: cwd, repo: deepLinks.repo });   // "Open repo": terminal in cwd
+    var hero = document.querySelector('.hero');          // Hero: Open + Continue plan
     if (hero && !hero.querySelector('.cc-actions')) {
       var row = document.createElement('div'); row.className = 'cc-actions hero-actions';
       row.appendChild(_ccBtn('', '⚡', 'Open in Claude Code', openUrl));
@@ -831,7 +835,7 @@
       }
       hero.appendChild(row);
     }
-    ids.forEach(function (id) {
+    ids.forEach(function (id) {                          // Per-phase: Start after each .sec-head
       var spec = actions[id]; if (!spec) return;
       var section = document.getElementById(id); if (!section) return;
       var head = section.querySelector('.sec-head'); if (!head || section.querySelector('.cc-actions')) return;
@@ -841,24 +845,29 @@
     });
   })();
 
-  // ── "Waiting for your input" banner ──
+  // ── "Waiting for your input" banner (Claude sets #plan-state `waiting` when it pauses to ask) ──
   (function () {
     var bar = document.getElementById('await-bar'); if (!bar) return;
     var w = emb && emb.waiting;
     var q = w ? (typeof w === 'string' ? w : w.question) : null;
-    if (!q) return;
+    if (!q) return;                                   // no `waiting` set → banner stays hidden
     var txt = document.getElementById('await-text'); if (txt) txt.textContent = '— ' + q;
     bar.classList.add('on');
-    document.title = '⏳ ' + document.title.replace(/^⏳\s*/, '');
+    document.title = '⏳ ' + document.title.replace(/^⏳\s*/, '');   // flag the browser tab too
     var sec = (typeof w === 'object' && w) ? w.section : null;
     if (sec && document.getElementById(sec)) {
       bar.classList.add('clickable');
       bar.onclick = function () { _focusSection(sec); };
     }
+
+    // Phase 3 — Select & Answer: when deepLinks is configured, let the user reply FROM the doc.
+    //   Each waiting.options[] entry becomes a deep-link button pre-filled with that choice;
+    //   a free-form "Answer" button is always offered. Each opens a fresh claude-cli:// session
+    //   that first reloads context from planPath.
     if (deepLinks && typeof w === 'object' && w) {
       var planPath = deepLinks.planPath;
       var ctx = planPath ? 'Open the plan at ' + planPath + ' and continue executing it. ' : '';
-      var stop = function (e) { e.stopPropagation(); };
+      var stop = function (e) { e.stopPropagation(); };                     // don't trigger the bar's scroll
       var row = document.createElement('div'); row.className = 'cc-actions';
       (Array.isArray(w.options) ? w.options : []).forEach(function (o) {
         var label = o && (o.label != null ? o.label : o.value); if (!label) return;
@@ -877,6 +886,8 @@
     var steps = (emb && emb.steps && typeof emb.steps === 'object') ? emb.steps : {};
     var times = (emb && emb.times && typeof emb.times === 'object') ? emb.times : {};
 
+    // Sub-task checklists — any list marked data-steps="<trackedId>"
+    // Animate the sub-bar only when a step count CHANGES (else it replays on every 4s reload).
     var STEPKEY = TKEY.replace('-theme', '-stepseen');
     var stepSeen = {}; try { stepSeen = JSON.parse(sessionStorage.getItem(STEPKEY) || '{}') || {}; } catch (e) {}
     var stepSeenNow = {};
@@ -906,11 +917,12 @@
       head.parentNode.insertBefore(wrap, head.nextSibling);
       var iEl = wrap.querySelector('i');
       stepSeenNow[id] = doneN;
-      if (stepSeen[id] === doneN) { iEl.style.transition = 'none'; iEl.style.width = pct + '%'; }
-      else { (function (el, p) { requestAnimationFrame(function () { el.style.width = p + '%'; }); })(iEl, pct); }
+      if (stepSeen[id] === doneN) { iEl.style.transition = 'none'; iEl.style.width = pct + '%'; }   // unchanged → no replay
+      else { (function (el, p) { requestAnimationFrame(function () { el.style.width = p + '%'; }); })(iEl, pct); }  // changed → animate once
     });
     try { sessionStorage.setItem(STEPKEY, JSON.stringify(stepSeenNow)); } catch (e) {}
 
+    // Per-phase timestamps — times[id] = { start, end }
     Object.keys(times).forEach(function (id) {
       var t = times[id]; if (!t) return;
       var section = document.getElementById(id); if (!section) return;
@@ -924,6 +936,7 @@
       anchor.parentNode.insertBefore(line, anchor.nextSibling);
     });
 
+    // Activity log — timeline in the #activity section; self-hides when empty
     var log = (emb && Array.isArray(emb.log)) ? emb.log : [];
     var actSec = document.getElementById('activity');
     var actLink = document.querySelector('nav.toc a[href="#activity"]');
@@ -944,10 +957,10 @@
     }
   })();
 
-  // ── Notify when needed ──
+  // ── Notify when needed: desktop notification + chime on `waiting` / completion (opt-in) ──
   (function () {
-    var NKEY = TKEY.replace('-theme', '-notify');
-    var SIGKEY = TKEY.replace('-theme', '-notifsig');
+    var NKEY = TKEY.replace('-theme', '-notify');       // localStorage: user enabled notifications
+    var SIGKEY = TKEY.replace('-theme', '-notifsig');   // sessionStorage: last-notified signal
     var btn = document.getElementById('notify-btn');
     var supported = ('Notification' in window);
 
@@ -989,6 +1002,7 @@
 
     if (!supported || !enabled() || Notification.permission !== 'granted') return;
 
+    // Transition detection — fire only when the signal is NEW vs the last one notified this session
     var doneNow = allDone();
     var wq = (function () { var w = emb && emb.waiting; return w ? (typeof w === 'string' ? w : w.question) : null; })();
     var prevSig = {}; try { prevSig = JSON.parse(sessionStorage.getItem(SIGKEY) || '{}') || {}; } catch (e) {}
@@ -1003,11 +1017,11 @@
     try { sessionStorage.setItem(SIGKEY, JSON.stringify({ waiting: wq || null, done: !!doneNow })); } catch (e) {}
   })();
 
-  // ── Theatrical animations ──
+  // ── Theatrical animations (entrance, ring count-up, change celebrations, confetti) ──
   (function () {
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var SEENKEY = TKEY.replace('-theme', '-seen');
-    var ENTERKEY = TKEY.replace('-theme', '-entered');
+    var SEENKEY = TKEY.replace('-theme', '-seen');     // sessionStorage: last-rendered status snapshot
+    var ENTERKEY = TKEY.replace('-theme', '-entered'); // sessionStorage: entrance-played flag
 
     var prev = null;
     try { var raw = sessionStorage.getItem(SEENKEY); if (raw) prev = JSON.parse(raw); } catch (e) {}
@@ -1015,6 +1029,7 @@
     try { sessionStorage.setItem(SEENKEY, JSON.stringify(cur)); } catch (e) {}
     var firstEver = !prev;
 
+    // Entrance stagger — first load of the session only (so live reloads don't restage).
     var entered = false; try { entered = sessionStorage.getItem(ENTERKEY) === '1'; } catch (e) {}
     if (!entered) {
       try { sessionStorage.setItem(ENTERKEY, '1'); } catch (e) {}
@@ -1024,6 +1039,7 @@
       });
     }
 
+    // Ring count-up from previous % to current %.
     var ring = document.getElementById('ring'), rp = document.getElementById('ring-pct');
     function pctOf(map) { var d = ids.filter(function (id) { return map[id] === 'done'; }).length; return ids.length ? Math.round(d / ids.length * 100) : 0; }
     var pctNow = pctOf(cur), pctPrev = firstEver ? 0 : pctOf(prev);
@@ -1039,6 +1055,7 @@
       });
     }
 
+    // Confetti — self-contained canvas, single shared particle loop.
     var CF = (function () {
       var cv, ctx, P = [], raf = null;
       var cols = ['#45c463', '#56b6ff', '#8b7bff', '#34d3c4', '#e0a93b', '#ff5d8f'];
@@ -1060,6 +1077,7 @@
     })();
     function burstAt(el) { var r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 3, width: 0, height: 0 }; CF(r.left + r.width / 2, r.top + r.height / 2, 40); }
 
+    // Per-section change celebrations (skipped on the first-ever load to avoid a spam burst).
     if (!firstEver) {
       ids.forEach(function (id) {
         if (cur[id] === prev[id]) return;
@@ -1068,9 +1086,10 @@
         });
         if (cur[id] === 'done') burstAt(document.querySelector('.rm-node[data-track="' + id + '"]'));
       });
-      if (pctNow === 100 && pctPrev < 100) CF(innerWidth / 2, innerHeight * 0.28, 150);
+      if (pctNow === 100 && pctPrev < 100) CF(innerWidth / 2, innerHeight * 0.28, 150); // finale
     }
 
+    // Ambient breathing for in-progress sections.
     ids.forEach(function (id) {
       if (cur[id] === 'doing') [].slice.call(document.querySelectorAll('[data-track="' + id + '"]')).forEach(function (el) { el.classList.add('is-breathing'); });
     });
@@ -1078,9 +1097,12 @@
   })();
 
   // ── Navigation: collapsible phases, status filter, keyboard jump ──
-  var KCOLLAPSE = TKEY.replace('-theme', '-collapsed');
-  var KFILTER = TKEY.replace('-theme', '-filter');
+  // NOTE: the page hard-reloads every RELOAD_MS, so each control persists its state and
+  // re-applies it on load — otherwise it would reset every few seconds.
+  var KCOLLAPSE = TKEY.replace('-theme', '-collapsed');  // localStorage: collapsed section ids
+  var KFILTER = TKEY.replace('-theme', '-filter');       // sessionStorage: active status filter
 
+  // Collapsible phases — inject a chevron into each phase .sec-head
   (function () {
     var collapsed = {};
     try { (JSON.parse(localStorage.getItem(KCOLLAPSE) || '[]') || []).forEach(function (id) { collapsed[id] = 1; }); } catch (e) {}
@@ -1100,6 +1122,7 @@
     });
   })();
 
+  // Status filter — show only matching tracked phase sections (reference sections always show)
   (function () {
     var bar = document.getElementById('filterbar'); if (!bar) return;
     var cur = 'all'; try { cur = sessionStorage.getItem(KFILTER) || 'all'; } catch (e) {}
@@ -1115,6 +1138,7 @@
     apply(cur);
   })();
 
+  // Keyboard jump — j / k between visible sections, g to top (ignored while typing)
   (function () {
     document.addEventListener('keydown', function (e) {
       var tag = (e.target && e.target.tagName) || '';
@@ -1130,99 +1154,6 @@
     });
   })();
 
-  // ── Sidebar sub-steps: build nested sub-lists under each phase link ──
-  (function () {
-    var steps = (emb && emb.steps && typeof emb.steps === 'object') ? emb.steps : {};
-    function doneSet(spec, total) {
-      var d = {};
-      if (typeof spec === 'number') { for (var i = 0; i < spec && i < total; i++) d[i] = 1; }
-      else if (Array.isArray(spec)) spec.forEach(function (i) { d[i] = 1; });
-      return d;
-    }
-    function labelFor(li) {
-      var b = li.querySelector('b');
-      var t = ((b ? b.textContent : li.textContent) || '').trim().replace(/[.:]\s*$/, '');
-      return t.length > 60 ? t.slice(0, 59) + '…' : t;
-    }
-    ids.forEach(function (id) {
-      var link = document.querySelector('nav.toc a[data-track="' + id + '"]');
-      var section = document.getElementById(id);
-      if (!link || !section) return;
-      var list = section.querySelector('ol.steps');
-      if (!list) return;
-      var items = [].filter.call(list.children, function (n) { return n.tagName === 'LI'; });
-      if (!items.length) return;
-      var total = items.length, done = doneSet(steps[id], total), phaseDoing = (st(id) === 'doing');
-      var firstUndone = -1; for (var i = 0; i < total; i++) { if (!done[i]) { firstUndone = i; break; } }
-      var sub = document.createElement('ul'); sub.className = 'toc-sub'; sub.setAttribute('data-sub', id);
-      items.forEach(function (li, i) {
-        var stepId = id + '-step-' + (i + 1);
-        li.id = stepId;
-        var a = document.createElement('a'); a.href = '#' + stepId;
-        a.setAttribute('data-sst', done[i] ? 'done' : (phaseDoing && i === firstUndone ? 'current' : 'todo'));
-        a.innerHTML = '<span class="sdot"></span><span class="slabel"></span>';
-        var lab = labelFor(li); a.querySelector('.slabel').textContent = lab; a.title = lab;
-        sub.appendChild(a);
-      });
-      if (!link.querySelector('.toc-chev')) {
-        var chev = document.createElement('span'); chev.className = 'toc-chev'; chev.textContent = '▸';
-        link.appendChild(chev);
-      }
-      link.parentNode.insertBefore(sub, link.nextSibling);
-    });
-  })();
-
-  (function () {
-    var subs = {};
-    [].slice.call(document.querySelectorAll('nav.toc .toc-sub')).forEach(function (ul) { subs[ul.getAttribute('data-sub')] = ul; });
-    if (!Object.keys(subs).length) return;
-    var PINKEY = TKEY.replace('-theme', '-subpin');
-    var pinned = null; try { pinned = sessionStorage.getItem(PINKEY) || null; } catch (e) {}
-    function linkFor(id) { return document.querySelector('nav.toc a[data-track="' + id + '"]'); }
-    function setOpen(id) {
-      Object.keys(subs).forEach(function (k) {
-        var on = (k === id);
-        subs[k].classList.toggle('open', on);
-        var l = linkFor(k); if (l) l.classList.toggle('sub-open', on);
-      });
-    }
-    var doingId = null; for (var i = 0; i < ids.length; i++) { if (st(ids[i]) === 'doing') { doingId = ids[i]; break; } }
-    var initial = (pinned && subs[pinned]) ? pinned : doingId;
-    if (initial) setOpen(initial);
-    Object.keys(subs).forEach(function (id) {
-      var l = linkFor(id); if (!l) return;
-      var chev = l.querySelector('.toc-chev'); if (!chev) return;
-      chev.addEventListener('click', function (e) {
-        e.preventDefault(); e.stopPropagation();
-        var willOpen = !subs[id].classList.contains('open');
-        setOpen(willOpen ? id : null);
-        pinned = willOpen ? id : null;
-        try { if (pinned) sessionStorage.setItem(PINKEY, pinned); else sessionStorage.removeItem(PINKEY); } catch (e2) {}
-      });
-    });
-    window.__subStepOnActive = function (id) {
-      if (!subs[id]) return;
-      if (pinned && pinned !== id) { pinned = null; try { sessionStorage.removeItem(PINKEY); } catch (e) {} }
-      if (!pinned) setOpen(id);
-    };
-  })();
-
-  (function () {
-    var reduceMo = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-    [].slice.call(document.querySelectorAll('nav.toc .toc-sub a')).forEach(function (a) {
-      a.addEventListener('click', function (e) {
-        var id = a.getAttribute('href').slice(1);
-        var li = document.getElementById(id); if (!li) return;
-        e.preventDefault();
-        var card = li.closest('section.card'); if (card) card.classList.remove('collapsed');
-        li.scrollIntoView({ behavior: reduceMo ? 'auto' : 'smooth', block: 'center' });
-        li.classList.remove('flash'); void li.offsetWidth; li.classList.add('flash');
-        setTimeout(function () { li.classList.remove('flash'); }, 1500);
-        try { history.replaceState(null, '', '#' + id); } catch (e2) {}
-      });
-    });
-  })();
-
   // ── Scroll-spy ──
   var links = {};
   document.querySelectorAll('nav.toc a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
@@ -1231,13 +1162,12 @@
       if (en.isIntersecting) {
         Object.values(links).forEach(function (a) { a.classList.remove('active'); });
         var a = links[en.target.id]; if (a) a.classList.add('active');
-        if (window.__subStepOnActive) window.__subStepOnActive(en.target.id);
       }
     });
   }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
   document.querySelectorAll('section[id]').forEach(function (s) { spy.observe(s); });
 
-  // ── Theme toggle ──
+  // ── Theme toggle (initial theme already applied by the <head> script) ──
   var html = document.documentElement;
   var themeBtn = document.getElementById('theme-btn');
   if (themeBtn) themeBtn.addEventListener('click', function () {
@@ -1268,6 +1198,7 @@
     })();
   })();
 
+  // ── Cursor spotlight ──
   (function () {
     var sp = document.querySelector('.spotlight'); if (!sp) return;
     if (window.matchMedia && matchMedia('(pointer: coarse)').matches) return;
@@ -1279,6 +1210,11 @@
   })();
 
   // ── Auto-refresh + auto-focus on the in-progress section ──
+  // The page reloads every RELOAD_MS to pick up #plan-state edits. On a normal reload we restore
+  // the reader's exact scroll position — INSTANTLY, because the page uses scroll-behavior:smooth
+  // for nav clicks and that would otherwise animate the restore on every refresh and look bad.
+  // The FIRST time an in-progress section exists (this session) we smooth-scroll to it once;
+  // after that we leave the reader wherever they scrolled.
   if ('scrollRestoration' in history) { try { history.scrollRestoration = 'manual'; } catch (e) {} }
   var _reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   function _firstDoing() { for (var i = 0; i < ids.length; i++) if (st(ids[i]) === 'doing') return ids[i]; return null; }
@@ -1291,7 +1227,10 @@
     el.scrollIntoView({ behavior: _reduce ? 'auto' : 'smooth', block: 'start' });
   }
   (function () {
-    var FKEY = TKEY.replace('-theme', '-focusid');
+    // Auto-scroll to the in-progress section — ONCE each time that section CHANGES (first open,
+    // or step N finishes and N+1 starts). Stays put on ordinary refreshes (same in-progress
+    // section) and preserves wherever the reader scrolled to.
+    var FKEY = TKEY.replace('-theme', '-focusid');   // sessionStorage: last in-progress id we scrolled to
     var curFocus = _firstDoing();
     var lastFocus = null; try { lastFocus = sessionStorage.getItem(FKEY); } catch (e) {}
     var savedY = null; try { savedY = sessionStorage.getItem(SKEY); } catch (e) {}
@@ -1299,11 +1238,11 @@
     var firstOpen = (savedY === null);
 
     if (curFocus && curFocus !== lastFocus) {
-      try { sessionStorage.setItem(FKEY, curFocus); } catch (e) {}
+      try { sessionStorage.setItem(FKEY, curFocus); } catch (e) {}   // remember it; scroll once
       setTimeout(function () { _focusSection(curFocus); }, firstOpen ? 600 : 0);
     } else {
-      if (!curFocus) { try { sessionStorage.removeItem(FKEY); } catch (e) {} }
-      if (!firstOpen) _instantTo(parseInt(savedY, 10) || 0);
+      if (!curFocus) { try { sessionStorage.removeItem(FKEY); } catch (e) {} }  // reset when nothing in progress
+      if (!firstOpen) _instantTo(parseInt(savedY, 10) || 0);          // keep the reader where they were
     }
   })();
   setInterval(function () {

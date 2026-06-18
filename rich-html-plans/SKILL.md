@@ -1,6 +1,6 @@
 ---
-name: html-plan
-description: "Use when finalizing, presenting, or writing an implementation/project plan — renders the plan as a polished, self-contained HTML document (sticky sidebar nav with scroll-spy, phase roadmap, clickable progress tracker, diagrams, light/dark toggle) saved to Docs/ and opened in Chrome. Trigger after plan mode or brainstorming settles a multi-phase plan, or when the user says 'plan', 'make a plan', 'write up the plan', or wants a plan as HTML / a doc / a link."
+name: rich-html-plans
+description: "Use when finalizing, presenting, or writing an implementation/project plan — renders the plan as a polished, self-contained HTML document (sticky sidebar nav with scroll-spy, phase roadmap, clickable progress tracker, diagrams, light/dark toggle) saved to Plans/ and opened in Chrome. Trigger after plan mode or brainstorming settles a multi-phase plan, or when the user says 'plan', 'make a plan', 'write up the plan', or wants a plan as HTML / a doc / a link."
 ---
 
 # HTML Plan
@@ -31,9 +31,9 @@ This **complements** the plan-mode markdown plan file — it does not replace it
    - **Be generous with diagrams** (see the **Diagrams** section below). Default to a visual for any flow, data model, ordered procedure, decision/comparison, or hierarchy — reach for prose only when a diagram wouldn't add clarity.
    - **Critical:** the script's `ids` array (near the bottom) must list exactly the tracked section ids, so the progress ring and roadmap reflect them. Keep `data-track` ids consistent across sidebar, roadmap, and pills.
 
-4. **Save** to the repo's `Docs/` folder (create it if missing) as `Docs/<kebab-title>-plan.html`. If there is no `Docs/` folder and no obvious docs location, save to the repo root.
+4. **Save** to the repo's `Plans/` folder (create it if missing) as `Plans/<kebab-title>-plan.html`.
 
-5. **Ensure the plan-aware SessionStart hook is installed** (one-time per repo). This makes every future Claude session in this repo — including ones the plan's "⏩ Continue plan" deep link opens — wake up already knowing the newest plan's `#plan-state`. Read `assets/session-start-hook.json` from this skill directory and **merge** its `hooks.SessionStart` entry into the repo's `.claude/settings.json` (create the file if missing; preserve any existing settings; if a SessionStart hook with this same command is already present, do nothing — it's idempotent). The hook is self-contained PowerShell (no `jq`/node), auto-discovers the newest `Docs/*-plan.html`, and **stays silent when that plan is 100% done**, so it never nags on finished work. **First-time caveat:** a hook written into a brand-new `.claude/settings.json` only takes effect after the user opens `/hooks` once or restarts Claude Code — the settings watcher doesn't pick up a `.claude/` directory that had no settings file when the session started. Say so when you install it the first time. See **Plan-aware sessions** below.
+5. **Ensure the plan-aware SessionStart hook is installed** (one-time per repo). This makes every future Claude session in this repo — including ones the plan's "⏩ Continue plan" deep link opens — wake up already knowing the newest plan's `#plan-state`. Read `assets/session-start-hook.json` from this skill directory and **merge** its `hooks.SessionStart` entry into the repo's `.claude/settings.json` (create the file if missing; preserve any existing settings; if a SessionStart hook with this same command is already present, do nothing — it's idempotent). The hook is self-contained PowerShell (no `jq`/node), auto-discovers the newest `Plans/*-plan.html`, and **stays silent when that plan is 100% done**, so it never nags on finished work. **First-time caveat:** a hook written into a brand-new `.claude/settings.json` only takes effect after the user opens `/hooks` once or restarts Claude Code — the settings watcher doesn't pick up a `.claude/` directory that had no settings file when the session started. Say so when you install it the first time. See **Plan-aware sessions** below.
 
 6. **Open in Chrome — dedicated "plans" window, new tab — and VERIFY it actually surfaced.** This workspace is Windows. All plans open in a **dedicated Chrome instance** pinned to its own profile directory, so every plan lands in the same window: the first plan of a session opens that window, each later plan opens as a **new tab** in it, and it never mixes into your regular browsing windows. Use the **PowerShell tool** with `Start-Process chrome` + a fixed `--user-data-dir`. Do NOT use `cmd /c start chrome <url>`.
    ```powershell
@@ -170,7 +170,7 @@ block.** When you do, it's on by default (hero + per-phase buttons appear automa
   "status": { "phase1": "doing" },
   "deepLinks": {
     "cwd": "C:/Users/you/Desktop/my-repo",        // absolute working dir (forward slashes on Windows)
-    "planPath": "Docs/my-plan.html"               // used by the "Continue plan" / answer buttons
+    "planPath": "Plans/my-plan.html"              // used by the "Continue plan" / answer buttons
   },
   "actions": {
     "phase1": { "start": "Implement Phase 1 …" },
@@ -239,7 +239,7 @@ The "⏩ Continue plan" deep link opens a **fresh** Claude session, which on its
 about the conversation that produced the plan — the `q=` prompt just asks Claude to go read the
 file. The SessionStart hook (`assets/session-start-hook.json`, installed in **step 5**) closes that
 gap from the other direction: on **every** session start in the repo it finds the newest
-`Docs/*-plan.html`, reads its `#plan-state`, and **injects the plan path + current status into the
+`Plans/*-plan.html`, reads its `#plan-state`, and **injects the plan path + current status into the
 session as context** (via `hookSpecificOutput.additionalContext`). A resumed session then already
 knows which phases are done, which is in progress, and any pending `waiting` question — without
 being told. The hook *reads* the plan; the plan's buttons don't reference the hook — they're
