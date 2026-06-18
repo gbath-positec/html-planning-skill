@@ -1,9 +1,10 @@
-# html-plan skill
+# rich-html-plans skill
 
 A Claude Code skill that turns any implementation or project plan into a polished,
 **self-contained HTML document** — sticky sidebar nav with scroll-spy, a phase
 roadmap, a live progress tracker, rich diagrams, and a light/dark toggle — then
-saves it to `Docs/` and opens it in your browser.
+saves it to `Plans/` and opens it in Chrome — every plan collected in one
+dedicated Chrome window, kept separate from your normal browsing.
 
 It triggers automatically when you ask Claude to "plan", "make a plan", "write up
 the plan", or otherwise finalize a multi-phase plan.
@@ -50,6 +51,14 @@ step. It works offline, opens in any browser, and you can drop it in Slack, atta
 it to a ticket, or commit it to the repo. Light/dark toggle is built in and
 remembered per plan.
 
+### <img src="screenshots/chrome-icon.svg" width="20" height="20" alt="Chrome" align="top"> All your plans in one window
+Every plan opens in **one dedicated Chrome window**, pinned to its own profile
+(`~/.plan-chrome`) and kept apart from your everyday browsing. The first plan
+opens the window; **every plan after it opens as a new tab in that same window**.
+So all your plans stay collected side by side as tabs in one place — their own
+history, no clutter mixed into your regular browsing. (If Chrome isn't installed,
+it falls back to your default browser.)
+
 ### ⏳ Tells you when it needs you
 When Claude pauses to ask a question mid-build, the plan pops a pulsing **"Waiting
 for your input"** banner at the top and flags the browser tab with a ⏳. If you're
@@ -57,6 +66,34 @@ watching progress on a second screen, you know the instant it's blocked on a
 decision — and clicking the banner jumps you to the section in question.
 
 ![The "Waiting for your input" banner pinned to the top of a plan](screenshots/05-waiting-banner.png)
+
+### 🪜 Sidebar sub-steps
+When a phase has a numbered step list, those steps appear as a collapsible
+sub-list under the phase in the sidebar — each with its own dot that turns green
+as work lands. The active phase auto-expands, the in-progress step glows amber,
+and clicking any sub-step jumps straight to it in the body. No extra authoring:
+it's built from the step list and progress data already in the plan.
+
+![Sidebar with a phase expanded into sub-steps, the in-progress step glowing amber](screenshots/06-sidebar-substeps.png)
+
+### 🚀 Deep-link buttons — launch Claude Code from the doc
+A plan can carry **opt-in buttons that open Claude Code directly**: "⚡ Open repo",
+"⏩ Continue plan" (runs the next unfinished phase), and "▶ Start" on each phase.
+A waiting question can even render its answer options as buttons, so a
+second-monitor reviewer clicks a choice and the session picks up from there. Uses
+the `claude-cli://` handler (Claude Code v2.1.91+); buttons simply don't appear if
+you don't opt in.
+
+![A plan with "Open in Claude Code" and "Continue plan" buttons in the hero and a per-phase "Start in Claude Code" button](screenshots/07-deep-links.png)
+
+![The "Waiting for your input" banner rendering its answer options as clickable buttons](screenshots/08-waiting-options.png)
+
+### 🔄 Plan-aware sessions
+An optional, one-per-repo **SessionStart hook** makes every new Claude session in
+the repo wake up already knowing the newest plan — its path, which phases are
+done, what's in progress, and any pending question — by reading the plan's state
+and feeding it in as context. It's read-only and stays silent once the plan is
+100% done, so finished work never nags unrelated sessions.
 
 ---
 
@@ -66,13 +103,14 @@ decision — and clicking the banner jumps you to the section in question.
 html-plan-skill/
 ├── README.md                 # this file
 ├── screenshots/              # the images used above
-└── html-plan/                # ← the skill itself (this is what you install)
+└── rich-html-plans/          # ← the skill itself (this is what you install)
     ├── SKILL.md              # the skill definition Claude reads
     └── assets/
-        └── plan-template.html # the HTML template the skill fills in
+        ├── plan-template.html      # the HTML template the skill fills in
+        └── session-start-hook.json # the optional plan-aware SessionStart hook
 ```
 
-You only install the **`html-plan/`** folder. The README and screenshots are just
+You only install the **`rich-html-plans/`** folder. The README and screenshots are just
 documentation.
 
 ---
@@ -83,36 +121,36 @@ Pick **one** of the two locations below, then restart Claude Code.
 
 ### Option A — Personal (available in all your projects)
 
-Copy the `html-plan/` folder into your user skills directory:
+Copy the `rich-html-plans/` folder into your user skills directory:
 
 | OS | Destination |
 |----|-------------|
-| **Windows** | `C:\Users\<you>\.claude\skills\html-plan\` |
-| **macOS / Linux** | `~/.claude/skills/html-plan/` |
+| **Windows** | `C:\Users\<you>\.claude\skills\rich-html-plans\` |
+| **macOS / Linux** | `~/.claude/skills/rich-html-plans/` |
 
 PowerShell (Windows):
 
 ```powershell
-Copy-Item -Recurse -Force .\html-plan "$env:USERPROFILE\.claude\skills\html-plan"
+Copy-Item -Recurse -Force .\rich-html-plans "$env:USERPROFILE\.claude\skills\rich-html-plans"
 ```
 
 bash (macOS / Linux):
 
 ```bash
-mkdir -p ~/.claude/skills && cp -R ./html-plan ~/.claude/skills/html-plan
+mkdir -p ~/.claude/skills && cp -R ./rich-html-plans ~/.claude/skills/rich-html-plans
 ```
 
 ### Option B — Project / team (committed to a repo, shared via git)
 
-Copy the `html-plan/` folder into the repo so everyone who clones it gets the skill:
+Copy the `rich-html-plans/` folder into the repo so everyone who clones it gets the skill:
 
 ```
-<your-repo>/.claude/skills/html-plan/
+<your-repo>/.claude/skills/rich-html-plans/
 ```
 
 ```bash
-mkdir -p .claude/skills && cp -R ./html-plan .claude/skills/html-plan
-git add .claude/skills/html-plan && git commit -m "Add html-plan skill"
+mkdir -p .claude/skills && cp -R ./rich-html-plans .claude/skills/rich-html-plans
+git add .claude/skills/rich-html-plans && git commit -m "Add rich-html-plans skill"
 ```
 
 ---
@@ -120,11 +158,11 @@ git add .claude/skills/html-plan && git commit -m "Add html-plan skill"
 ## Verify it's installed
 
 1. Restart Claude Code (or open the `/hooks` menu, which reloads config).
-2. Run `/html-plan` — if it's recognized, the skill loaded.
+2. Run `/rich-html-plans` — if it's recognized, the skill loaded.
 3. Or just ask Claude to "write up a plan" for something; it should produce an
-   HTML file in `Docs/` and open it.
+   HTML file in `Plans/` and open it.
 
-The final HTML is written to a `Docs/` folder in your current project, so make
+The final HTML is written to a `Plans/` folder in your current project, so make
 sure you're running Claude Code from a project directory.
 
 ---
@@ -148,7 +186,7 @@ Add this under the top-level object in either `~/.claude/settings.json`
           {
             "type": "command",
             "shell": "bash",
-            "command": "grep -iqE \"\\bplan(s|ning|ned)?\\b\" && printf \"%s\" \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"UserPromptSubmit\\\",\\\"additionalContext\\\":\\\"REMINDER: This request involves a plan. When you finalize or present any implementation/project plan this turn, you MUST render it using the html-plan skill (Skill tool, skill=html-plan) — do not output the plan as plain markdown.\\\"}}\" || true",
+            "command": "grep -iqE \"\\bplan(s|ning|ned)?\\b\" && printf \"%s\" \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"UserPromptSubmit\\\",\\\"additionalContext\\\":\\\"REMINDER: This request involves a plan. When you finalize or present any implementation/project plan this turn, you MUST render it using the rich-html-plans skill (Skill tool, skill=rich-html-plans) — do not output the plan as plain markdown.\\\"}}\" || true",
             "statusMessage": "Checking for plan request..."
           }
         ]
@@ -170,8 +208,30 @@ loads.
 
 ---
 
+## Deep links & plan-aware sessions
+
+Two extra capabilities are driven by the skill itself — you don't configure them,
+you just ask for them:
+
+- **Deep-link buttons** are opt-in per plan. Ask Claude to "add deep links" (or it
+  offers them when a working directory is known) and the plan gets "Open repo",
+  "Continue plan", and per-phase "Start" buttons that launch Claude Code via the
+  `claude-cli://` handler. Requires **Claude Code v2.1.91+**; the handler
+  auto-registers on the first interactive `claude` run. Buttons work from the
+  opened `file://` doc — GitHub strips the scheme, so they're not for pasting into
+  a README.
+- **The plan-aware SessionStart hook** (`rich-html-plans/assets/session-start-hook.json`)
+  is installed once per repo. Claude merges it into the repo's
+  `.claude/settings.json` when you ask it to set up plan-aware sessions; from then
+  on every session in that repo starts knowing the newest plan's state. It's
+  read-only, dependency-free (PowerShell on Windows), and silent once the plan is
+  done. As with any new hook, it takes effect after you open `/hooks` once or
+  restart.
+
+---
+
 ## Updating later
 
-This is a one-off copy. If the skill is improved, re-copy the updated `html-plan/`
+This is a one-off copy. If the skill is improved, re-copy the updated `rich-html-plans/`
 folder over the installed one. For automatic updates, package it as a Claude Code
 plugin/marketplace instead.

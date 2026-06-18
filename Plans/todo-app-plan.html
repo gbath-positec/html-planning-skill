@@ -35,8 +35,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{TITLE}}</title>
-<script>try{var _t=localStorage.getItem('{{KEBAB_TITLE}}-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<title>Todo App — Build Plan</title>
+<script>try{var _t=localStorage.getItem('todo-app-plan-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <style>
   :root {
     --bg: #0b0d12;
@@ -295,8 +295,72 @@
   .await-bar .qt { color: var(--muted); }
   @keyframes await-pulse { 0%,100% { box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 0 rgba(224,169,59,0); } 50% { box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 7px rgba(224,169,59,.16); } }
 
+  /* ── Notify bell (sidebar) ── */
+  .notify-btn { margin-top: 10px; width: 100%; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px; transition: all .12s; }
+  .notify-btn:hover { color: var(--text); border-color: var(--border); }
+  .notify-btn.on { color: var(--green); border-color: color-mix(in srgb, var(--green) 50%, transparent); background: color-mix(in srgb, var(--green) 10%, var(--panel)); }
+  .notify-btn.blocked { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+  .notify-btn[disabled] { opacity: .5; cursor: default; }
+
+  /* ── Deep-link action buttons (claude-cli://) — injected by JS when #plan-state.deepLinks is set ── */
+  .cc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
+  .cc-actions.hero-actions { margin: 18px 0 0; }
+  .cc-action { display: inline-flex; align-items: center; gap: 7px; font-family: inherit; font-size: 12.5px; font-weight: 600;
+    padding: 7px 13px; border-radius: 9px; cursor: pointer; text-decoration: none; transition: transform .13s, border-color .13s, box-shadow .13s;
+    background: color-mix(in srgb, var(--accent-2) 13%, var(--panel)); color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--accent-2) 42%, transparent); }
+  .cc-action:hover { text-decoration: none; transform: translateY(-1px); border-color: var(--accent-2); box-shadow: 0 4px 14px rgba(139,123,255,.18); }
+  .cc-action .ic { font-size: 13px; line-height: 1; }
+  .cc-action.start  { background: color-mix(in srgb, var(--accent) 13%, var(--panel)); border-color: color-mix(in srgb, var(--accent) 42%, transparent); }
+  .cc-action.start:hover  { border-color: var(--accent); box-shadow: 0 4px 14px rgba(86,182,255,.18); }
+  .cc-action.ghost  { background: var(--panel-2); border-color: var(--border); color: var(--muted); }
+  .cc-action.ghost:hover  { color: var(--text); border-color: var(--accent); }
+  .await-bar .cc-actions { margin: 0 0 0 4px; }
+  .await-bar .cc-action { padding: 5px 11px; font-size: 12px; }
+
+  /* ── Status filter (sidebar) ── */
+  .filterbar { display: flex; gap: 4px; margin-top: 6px; }
+  .filterbar button { flex: 1; cursor: pointer; font-family: inherit; font-size: 10.5px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 7px; padding: 6px 3px; transition: all .12s; }
+  .filterbar button:hover { color: var(--text); }
+  .filterbar button.active { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel)); font-weight: 600; }
+
+  /* ── Collapsible phases ── */
+  .chev { flex: none; cursor: pointer; width: 24px; height: 24px; margin-top: 2px; border-radius: 6px; border: 1px solid var(--border-soft);
+    background: var(--panel-2); color: var(--muted); font-size: 11px; line-height: 1; display: grid; place-items: center;
+    transition: transform .15s, color .12s; user-select: none; }
+  .chev:hover { color: var(--text); }
+  .card.collapsed .chev { transform: rotate(-90deg); }
+  .card.collapsed > *:not(.sec-head) { display: none; }
+  .card.collapsed .subprog, .card.collapsed .ts-line { display: none; }
+  .sec-head .chev { margin-right: 4px; }
+
+  /* ── Sub-task checklists ── */
+  .step-check { color: var(--green); font-weight: 700; margin-right: 6px; }
+  .step-done { opacity: .55; }
+  .subprog { display: flex; align-items: center; gap: 9px; margin: 10px 0 2px; }
+  .subprog .subbar { position: relative; flex: 1; max-width: 240px; height: 5px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+  .subprog .subbar > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; background: var(--green); transition: width .45s cubic-bezier(.2,.7,.2,1); }
+  .subprog .subcount { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .ts-line { font-family: ui-monospace, monospace; font-size: 11px; color: var(--faint); margin: 6px 0 0; }
+  .ts-line b { color: var(--muted); font-weight: 600; }
+
+  /* ── Activity log timeline ── */
+  .timeline { list-style: none; margin: 8px 0 0; padding: 0; }
+  .timeline li { position: relative; padding: 0 0 14px 26px; font-size: 13.5px; }
+  .timeline li::before { content: ""; position: absolute; left: 3px; top: 5px; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 18%, transparent); }
+  .timeline li::after { content: ""; position: absolute; left: 7px; top: 16px; bottom: -2px; width: 1.5px; background: var(--border-soft); }
+  .timeline li:last-child { padding-bottom: 0; }
+  .timeline li:last-child::after { display: none; }
+  .timeline .tl-t { font-family: ui-monospace, monospace; font-size: 11px; color: var(--faint); margin-right: 9px; }
+  .timeline .tl-x { color: var(--text); }
+
+
   @media (prefers-reduced-motion: reduce) {
     .status, .rm-num, .card, .hero, .roadmap, .live-badge .live-dot::after, .await-bar, .await-bar .wd::after { animation: none !important; }
+    .subprog .subbar > i, .chev { transition: none !important; }
     .confetti-cv { display: none; }
   }
 
@@ -350,51 +414,86 @@
   <span class="wq"><b>Waiting for your input</b> <span class="qt" id="await-text"></span></span>
 </div>
 
+
 <div class="shell">
 
   <!-- ───────── Sidebar ───────── -->
   <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><b>{{SHORT_TITLE}}</b></div>
-    <div class="brand-sub">{{SUBTAG e.g. ⎇ branch-name}}</div>
+    <div class="brand"><span class="dot"></span><b>Todo App</b></div>
+    <div class="brand-sub">⎇ main · test/todo-app</div>
 
     <div class="ring-wrap">
       <div class="ring" id="ring"><span id="ring-pct">0%</span></div>
-      <div class="ring-meta"><b id="ring-count">0 / N</b><span>build sections done</span></div>
+      <div class="ring-meta"><b id="ring-count">0 / 6</b><span>build sections done</span></div>
     </div>
 
     <div class="toc-label">Plan</div>
     <nav class="toc" id="toc">
-      <!-- One link per TRACKED section. data-track must match the section id + pill. -->
-      <a href="#sectionA" data-track="sectionA"><span class="mk"></span>Section A</a>
-      <!-- ...more tracked links... -->
+      <a href="#phase1" data-track="phase1"><span class="mk"></span>1 · Scaffold</a>
+      <a href="#phase2" data-track="phase2"><span class="mk"></span>2 · Data + storage</a>
+      <a href="#phase3" data-track="phase3"><span class="mk"></span>3 · Render + add</a>
+      <a href="#phase4" data-track="phase4"><span class="mk"></span>4 · Toggle + delete</a>
+      <a href="#phase5" data-track="phase5"><span class="mk"></span>5 · Filters + count</a>
+      <a href="#phase6" data-track="phase6"><span class="mk"></span>6 · Polish</a>
     </nav>
     <div class="toc-label">Reference</div>
     <nav class="toc">
-      <!-- Non-tracked links: leave .mk transparent, no data-track. -->
       <a href="#critical"><span class="mk" style="background:transparent"></span>Critical files</a>
       <a href="#verify"><span class="mk" style="background:transparent"></span>Verification</a>
+      <a href="#deferred"><span class="mk" style="background:transparent"></span>Deferred</a>
+      <a href="#activity"><span class="mk" style="background:transparent"></span>Activity log</a>
     </nav>
 
+    <div class="toc-label">View</div>
+    <div class="filterbar" id="filterbar">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="todo">To do</button>
+      <button data-filter="doing">Doing</button>
+      <button data-filter="done">Done</button>
+    </div>
+
     <button class="theme-btn" id="theme-btn">◐ Toggle light / dark</button>
+    <button class="notify-btn" id="notify-btn">🔔 Notify me</button>
   </aside>
 
   <!-- ───────── Main ───────── -->
   <main class="main">
 
     <header class="hero">
-      <div class="eyebrow">{{EYEBROW e.g. Implementation Plan}}</div>
-      <h1>{{TITLE}}</h1>
-      <p>{{SUBTITLE — one or two sentences}}</p>
+      <div class="eyebrow">Implementation Plan</div>
+      <h1>Todo App — Vanilla JS</h1>
+      <p>A tiny no-framework todo app (add · complete · delete · filter · persist) built in <code>test/todo-app/</code>. This plan is also a live test rig for every html-plan feature.</p>
       <div class="chips">
-        <span class="chip">{{✦ highlight}}</span>
-        <!-- a few key facts as chips -->
+        <span class="chip">stack: <b>HTML + CSS + vanilla JS</b></span>
+        <span class="chip">files: <b>3</b></span>
+        <span class="chip">persistence: <b>localStorage</b></span>
+        <span class="chip">deps: <b>none</b></span>
+        <span class="chip">phases: <b>6</b></span>
       </div>
     </header>
 
+    <!-- App data-flow — the one-liner mental model -->
+    <div class="diagram">
+      <div class="dg-title">App data flow</div>
+      <div class="flow">
+        <div class="col"><div class="node q"><b>UI event</b><small>add / toggle / delete / filter</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node hl"><b>mutate state</b><small>todos[] in memory</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node"><b>save()</b><small>localStorage</small></div></div>
+        <div class="arrow">→</div>
+        <div class="col"><div class="node ans"><b>render()</b><small>rebuild list + count</small></div></div>
+      </div>
+    </div>
+
     <!-- Roadmap: one node per tracked section, data-track must match. -->
     <div class="roadmap" id="roadmap">
-      <a class="rm-node" href="#sectionA" data-track="sectionA"><div class="rm-num">1</div><div class="rm-label">Section A</div></a>
-      <!-- ...more nodes... -->
+      <a class="rm-node" href="#phase1" data-track="phase1"><div class="rm-num">1</div><div class="rm-label">Scaffold</div></a>
+      <a class="rm-node" href="#phase2" data-track="phase2"><div class="rm-num">2</div><div class="rm-label">Data + storage</div></a>
+      <a class="rm-node" href="#phase3" data-track="phase3"><div class="rm-num">3</div><div class="rm-label">Render + add</div></a>
+      <a class="rm-node" href="#phase4" data-track="phase4"><div class="rm-num">4</div><div class="rm-label">Toggle + delete</div></a>
+      <a class="rm-node" href="#phase5" data-track="phase5"><div class="rm-num">5</div><div class="rm-label">Filters + count</div></a>
+      <a class="rm-node" href="#phase6" data-track="phase6"><div class="rm-num">6</div><div class="rm-label">Polish</div></a>
     </div>
     <div class="legend">
       <span><i style="background:var(--border)"></i> To do</span>
@@ -403,17 +502,130 @@
       <span style="color:var(--faint)">— status reflects implementation progress; roadmap &amp; sidebar mirror it</span>
     </div>
 
-    <!-- ───────── Example TRACKED section ───────── -->
-    <section id="sectionA" class="card phase">
+    <!-- ═══════════ PHASE 1 ═══════════ -->
+    <section id="phase1" class="card phase" data-accent="blue">
       <div class="sec-head">
         <div class="titles">
-          <div class="sec-kicker">{{KICKER e.g. Phase 1 · Foundation}}</div>
-          <h2>{{Section title}} <span class="muted-tail">— optional subtitle</span></h2>
+          <div class="sec-kicker">Phase 1 · Foundation</div>
+          <h2>Scaffold <span class="muted-tail">— files + page shell</span></h2>
         </div>
-        <button class="status" data-track="sectionA">To do</button>
+        <button class="status" data-track="phase1">To do</button>
       </div>
-      <p>{{Body…}}</p>
-      <!-- Use <ul>, <table>, <div class="callout">, <div class="diagram"> as needed. -->
+      <p>Lay down the three files and a semantic page shell. No logic yet — just structure the app will hang off.</p>
+      <ol class="steps" data-steps="phase1">
+        <li><b>Create the files.</b> <code>index.html</code>, <code>styles.css</code>, <code>app.js</code> in <code>test/todo-app/</code>.</li>
+        <li><b>HTML shell.</b> <code>&lt;header&gt;</code> title, a form with text <code>&lt;input&gt;</code> + Add button, an empty <code>&lt;ul id="list"&gt;</code>, a footer with count + filters.</li>
+        <li><b>Wire assets.</b> Link <code>styles.css</code> in <code>&lt;head&gt;</code> and <code>app.js</code> with <code>defer</code>.</li>
+        <li><b>Smoke check.</b> Open the page — shell renders, no console errors.</li>
+      </ol>
+      <div class="callout">Plain semantic HTML — a <code>&lt;form&gt;</code> so Enter submits for free, one <code>&lt;ul&gt;</code> we re-render from state.</div>
+    </section>
+
+    <!-- ═══════════ PHASE 2 ═══════════ -->
+    <section id="phase2" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 2 · Data</div>
+          <h2>Data model + storage <span class="muted-tail">— state that survives reload</span></h2>
+        </div>
+        <button class="status" data-track="phase2">To do</button>
+      </div>
+      <p>Define the todo shape and the load/save round-trip. One in-memory array is the source of truth; localStorage is the mirror.</p>
+      <div class="diagram">
+        <div class="dg-title">todo object</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">id</span><span class="col-type">string</span><span class="col-note">unique — Date.now()+rand</span></div>
+          <div class="row"><span class="col-name">text</span><span class="col-type">string</span><span class="col-note">trimmed, non-empty</span></div>
+          <div class="row"><span class="col-name">done</span><span class="col-type">boolean</span><span class="col-note">completed flag</span></div>
+        </div>
+      </div>
+      <div class="compare">
+        <div class="bad"><div class="ct">In-memory only</div><ul><li>Simplest</li><li>Lost on refresh</li></ul></div>
+        <div class="pick"><div class="ct">localStorage (picked)</div><ul><li>Survives reload</li><li>One <code>save()</code> after each mutation</li><li>Still zero deps</li></ul></div>
+      </div>
+      <ol class="steps" data-steps="phase2">
+        <li><b>State.</b> <code>let todos = load()</code>.</li>
+        <li><b>load().</b> Parse <code>localStorage['todos']</code> → array, default <code>[]</code> (guard JSON errors).</li>
+        <li><b>save().</b> <code>localStorage.setItem('todos', JSON.stringify(todos))</code>.</li>
+      </ol>
+    </section>
+
+    <!-- ═══════════ PHASE 3 ═══════════ -->
+    <section id="phase3" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 3 · Core</div>
+          <h2>Render + add <span class="muted-tail">— see todos, create todos</span></h2>
+        </div>
+        <button class="status" data-track="phase3">To do</button>
+      </div>
+      <p>The render loop and the first mutation. <code>render()</code> rebuilds the list from state; adding pushes, saves, re-renders.</p>
+      <ol class="steps" data-steps="phase3">
+        <li><b>render().</b> Clear <code>#list</code>, build one <code>&lt;li&gt;</code> per todo (checkbox + text + delete).</li>
+        <li><b>Add handler.</b> On form submit: trim input, ignore empty, push a new todo.</li>
+        <li><b>Persist + paint.</b> Call <code>save()</code> then <code>render()</code>; clear the input.</li>
+        <li><b>Initial paint.</b> Call <code>render()</code> once on load.</li>
+      </ol>
+    </section>
+
+    <!-- ═══════════ PHASE 4 ═══════════ -->
+    <section id="phase4" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 4 · Interactions</div>
+          <h2>Toggle + delete <span class="muted-tail">— complete &amp; remove</span></h2>
+        </div>
+        <button class="status" data-track="phase4">To do</button>
+      </div>
+      <p>Make rows interactive via one delegated listener on <code>#list</code> (survives re-renders, no per-row binding).</p>
+      <ol class="steps" data-steps="phase4">
+        <li><b>Delegate.</b> One <code>click</code> listener on <code>#list</code>; read <code>data-id</code> from the row.</li>
+        <li><b>Toggle.</b> Checkbox flips <code>done</code>; completed rows get a strike-through class.</li>
+        <li><b>Delete.</b> The ✕ button filters that id out of <code>todos</code>.</li>
+        <li><b>Persist.</b> Each mutation → <code>save()</code> + <code>render()</code>.</li>
+      </ol>
+      <div class="callout warn">Event delegation, not per-row handlers — the list is rebuilt every render, so binding per row would leak listeners.</div>
+    </section>
+
+    <!-- ═══════════ PHASE 5 ═══════════ -->
+    <section id="phase5" class="card phase" data-accent="blue">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 5 · Views</div>
+          <h2>Filters + count <span class="muted-tail">— all / active / completed</span></h2>
+        </div>
+        <button class="status" data-track="phase5">To do</button>
+      </div>
+      <p>A current-filter variable gates what <code>render()</code> shows; the footer reports items left.</p>
+      <table>
+        <tr><th>Filter</th><th>Predicate</th></tr>
+        <tr><td>All</td><td>show every todo</td></tr>
+        <tr><td>Active</td><td><code>!todo.done</code></td></tr>
+        <tr><td>Completed</td><td><code>todo.done</code></td></tr>
+      </table>
+      <ol class="steps" data-steps="phase5">
+        <li><b>Filter state.</b> <code>let filter = 'all'</code>; clicking a filter button sets it + re-renders.</li>
+        <li><b>Apply.</b> <code>render()</code> filters <code>todos</code> by the predicate above.</li>
+        <li><b>Count.</b> Footer shows “N item(s) left” (active count).</li>
+        <li><b>Active styling.</b> Highlight the selected filter button.</li>
+      </ol>
+    </section>
+
+    <!-- ═══════════ PHASE 6 ═══════════ -->
+    <section id="phase6" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 6 · Polish</div>
+          <h2>Polish <span class="muted-tail">— empty state + styling</span></h2>
+        </div>
+        <button class="status" data-track="phase6">To do</button>
+      </div>
+      <ol class="steps" data-steps="phase6">
+        <li><b>Empty state.</b> Friendly message when the (filtered) list is empty.</li>
+        <li><b>Styling pass.</b> Card layout, hover affordances, focus ring on the input.</li>
+        <li><b>Final once-over.</b> Add a few todos, toggle, delete, filter, reload — state persists.</li>
+      </ol>
+      <div class="callout ok">Acceptance: add / complete / delete / filter all work and survive a refresh, with zero dependencies and no console errors.</div>
     </section>
 
     <!-- Optional flow diagram pattern:
@@ -464,20 +676,54 @@
     </div>
     -->
 
-    <!-- ───────── Example REFERENCE sections (no tracking) ───────── -->
+    <!-- ───────── REFERENCE sections (no tracking) ───────── -->
     <section id="critical" class="card plain">
       <div class="sec-kicker">Map</div>
       <h2>Critical files</h2>
-      <ul><li>…</li></ul>
+      <div class="diagram">
+        <div class="dg-title">test/todo-app layout</div>
+        <div class="tree"><span class="dir">test/todo-app/</span>
+├─ <span class="nm">index.html</span>   <small>page shell: form, #list, footer</small>
+├─ <span class="nm">styles.css</span>   <small>layout + completed/empty states</small>
+└─ <span class="nm">app.js</span>       <small>state, load/save, render, handlers</small></div>
+      </div>
+      <ul>
+        <li><strong>app.js</strong> — the whole brain: <code>todos[]</code>, <code>load/save</code>, <code>render</code>, add/toggle/delete, filter.</li>
+        <li><strong>index.html</strong> — structure only; all behaviour is delegated from <code>app.js</code>.</li>
+      </ul>
     </section>
 
     <section id="verify" class="card plain">
       <div class="sec-kicker">Proof</div>
       <h2>Verification</h2>
-      <ul><li>…</li></ul>
+      <ul>
+        <li><strong>Add:</strong> type + Enter (and + button) → item appears, input clears.</li>
+        <li><strong>Toggle:</strong> checkbox strikes through; “items left” updates.</li>
+        <li><strong>Delete:</strong> ✕ removes the row.</li>
+        <li><strong>Filter:</strong> All / Active / Completed show the right subset.</li>
+        <li><strong>Persist:</strong> reload the page — todos and their done-state remain.</li>
+        <li><strong>Clean:</strong> no console errors; no network/deps.</li>
+      </ul>
     </section>
 
-    <footer>{{TITLE}}</footer>
+    <section id="deferred" class="card plain deferred">
+      <div class="sec-kicker">Out of scope</div>
+      <h2>Deferred <span class="pill defer">later</span></h2>
+      <ul>
+        <li>Edit-in-place (double-click to rename)</li>
+        <li>Drag-to-reorder</li>
+        <li>Due dates / priorities</li>
+        <li>Clear-completed bulk action</li>
+      </ul>
+    </section>
+
+    <!-- Activity log — auto-rendered from #plan-state `log`; self-hides when the log is empty. -->
+    <section id="activity" class="card plain">
+      <div class="sec-kicker">Timeline</div>
+      <h2>Activity log</h2>
+    </section>
+
+    <footer>Todo App — Build Plan · vanilla JS in test/todo-app · live test of html-plan features · auto-refreshes ~4s</footer>
 
   </main>
 </div>
@@ -486,15 +732,41 @@
      • Set each tracked id to "todo" | "doing" | "done". Keys MUST match the `ids` array.
      • The page auto-refreshes every few seconds, so edits here show up on their own. -->
 <script id="plan-state" type="application/json">
-{ "status": {} }
+{
+  "status": { "phase1": "done", "phase2": "done", "phase3": "done", "phase4": "done", "phase5": "done", "phase6": "done" },
+  "steps": { "phase1": 4, "phase2": 3, "phase3": 4, "phase4": 4, "phase5": 4, "phase6": 3 },
+  "times": { "phase1": { "start": "16:13", "end": "16:14" }, "phase2": { "start": "16:14", "end": "16:16" }, "phase3": { "start": "16:16", "end": "16:18" }, "phase4": { "start": "16:18", "end": "16:20" }, "phase5": { "start": "16:20", "end": "16:22" }, "phase6": { "start": "16:22", "end": "16:25" } },
+  "log": [
+    { "t": "16:13", "text": "Plan rendered; starting Phase 1 (scaffold) in test/todo-app." },
+    { "t": "16:14", "text": "Phase 1 done — index.html, styles.css, app.js scaffolded; shell renders." },
+    { "t": "16:16", "text": "Phase 2 done — todo shape + load()/save() against localStorage (key 'todos')." },
+    { "t": "16:18", "text": "Phase 3 done — render() rebuilds the list; form handler adds todos (XSS-safe textContent)." },
+    { "t": "16:20", "text": "Phase 4 done — toggle + delete via one delegated #list listener." },
+    { "t": "16:22", "text": "Phase 5 done — All/Active/Completed filters + items-left count + empty state. Paused for styling decision." },
+    { "t": "16:24", "text": "Styling direction chosen: Colorful & playful. Resuming Phase 6 (polish)." },
+    { "t": "16:25", "text": "Phase 6 done — colorful/playful styling pass: gradient backdrop, rounded card, custom round checkboxes, pill filters, animated rows, styled empty state. All 6 phases complete." }
+  ],
+  "deepLinks": {
+    "cwd": "C:/Users/gbath.SURREY/Desktop/html-plan-skill/test/todo-app",
+    "planPath": "Plans/todo-app-plan.html"
+  },
+  "actions": {
+    "phase1": { "start": "Open the plan at Plans/todo-app-plan.html and implement Phase 1 (Scaffold): create index.html, styles.css, app.js in test/todo-app with a semantic shell.", "verify": "Open test/todo-app/index.html and confirm the shell renders with no console errors." },
+    "phase2": { "start": "Implement Phase 2 (Data model + storage) from Plans/todo-app-plan.html: todo shape, load() and save() against localStorage.", "verify": "Add a todo, reload, confirm it persists in localStorage." },
+    "phase3": { "start": "Implement Phase 3 (Render + add) from Plans/todo-app-plan.html: render() plus the add-todo form handler.", "verify": "Add a few todos via the input and confirm they render and clear the input." },
+    "phase4": { "start": "Implement Phase 4 (Toggle + delete) from Plans/todo-app-plan.html using one delegated click listener on #list.", "verify": "Toggle and delete todos; confirm state updates and persists." },
+    "phase5": { "start": "Implement Phase 5 (Filters + count) from Plans/todo-app-plan.html: All/Active/Completed plus an items-left count.", "verify": "Exercise each filter and confirm the active-count is correct." },
+    "phase6": { "start": "Implement Phase 6 (Polish) from Plans/todo-app-plan.html: empty state and a styling pass.", "verify": "Full run-through: add/toggle/delete/filter/reload all work with no console errors." }
+  }
+}
 </script>
 
 <script>
 (function () {
   // ── Config ──
-  var TKEY = '{{KEBAB_TITLE}}-theme';     // localStorage: theme preference
-  var SKEY = '{{KEBAB_TITLE}}-scroll';    // sessionStorage: scroll Y across reload
-  var ids = ['sectionA' /*, 'sectionB', ... */]; // EXACTLY the tracked section ids
+  var TKEY = 'todo-app-plan-theme';     // localStorage: theme preference
+  var SKEY = 'todo-app-plan-scroll';    // sessionStorage: scroll Y across reload
+  var ids = ['phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase6']; // EXACTLY the tracked section ids
   var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
   var RELOAD_MS = 4000;
 
@@ -505,6 +777,26 @@
   var status  = (emb && emb.status && typeof emb.status === 'object') ? emb.status : {};
   function st(id) { return status[id] || 'todo'; }
   function allDone() { return !!ids.length && ids.filter(function (id) { return st(id) === 'done'; }).length >= ids.length; }
+
+  // ── Deep-link actions — opt-in. Present only when #plan-state.deepLinks exists. ──
+  //   deepLinks: { cwd, planPath }   actions: { <trackedId>: { start } }
+  //   ccUrl() owns ALL encoding so markup never hand-encodes. Builds claude-cli:// (terminal).
+  var deepLinks = (emb && emb.deepLinks && typeof emb.deepLinks === 'object') ? emb.deepLinks : null;
+  var actions   = (emb && emb.actions && typeof emb.actions === 'object') ? emb.actions : {};
+  var CC_MAX_Q  = 5000;   // claude-cli:// `q` hard limit (chars, decoded)
+  function ccUrl(opts) {
+    opts = opts || {};
+    var parts = [];
+    function add(k, v) { if (v != null && v !== '') parts.push(k + '=' + encodeURIComponent(v)); }  // %0A for newlines, etc.
+    var q = opts.q;
+    if (typeof q === 'string' && q.length > CC_MAX_Q) {
+      try { console.warn('[plan] deep-link prompt is ' + q.length + ' chars (> ' + CC_MAX_Q + '); truncating. Point at the plan file instead.'); } catch (e) {}
+      q = q.slice(0, CC_MAX_Q);
+    }
+    add('q', q); add('cwd', opts.cwd); add('repo', opts.repo);   // cwd wins over repo per spec
+    return 'claude-cli://open' + (parts.length ? '?' + parts.join('&') : '');
+  }
+  function actUrl(q) { return ccUrl({ q: q, cwd: deepLinks && deepLinks.cwd }); }
 
   // ── Render pills / roadmap / ring from embedded state ──
   [].slice.call(document.querySelectorAll('[data-track]')).forEach(function (el) {
@@ -518,6 +810,39 @@
     var ring = document.getElementById('ring'); if (ring) ring.style.setProperty('--pct', pct);
     var rp = document.getElementById('ring-pct'); if (rp) rp.textContent = pct + '%';
     var rc = document.getElementById('ring-count'); if (rc) rc.textContent = done + ' / ' + ids.length;
+  })();
+
+  // ── Deep-link trigger buttons (Phase 2): hero Open/Continue + per-phase Start ──
+  //    All injected from #plan-state — no markup needed in the plan body.
+  function _ccBtn(cls, icon, label, href) {
+    var a = document.createElement('a');
+    a.className = 'cc-action' + (cls ? ' ' + cls : '');
+    a.href = href; a.rel = 'noopener';
+    a.innerHTML = '<span class="ic">' + icon + '</span>' + label;
+    return a;
+  }
+  (function () {
+    if (!deepLinks) return;                              // feature off unless #plan-state.deepLinks is set
+    var cwd = deepLinks.cwd, planPath = deepLinks.planPath;
+    var openUrl = ccUrl({ cwd: cwd, repo: deepLinks.repo });   // "Open repo": terminal in cwd
+    var hero = document.querySelector('.hero');          // Hero: Open + Continue plan
+    if (hero && !hero.querySelector('.cc-actions')) {
+      var row = document.createElement('div'); row.className = 'cc-actions hero-actions';
+      row.appendChild(_ccBtn('', '⚡', 'Open in Claude Code', openUrl));
+      if (planPath) {
+        var cont = 'Open the implementation plan at ' + planPath + ' and continue executing the next not-done phase. Update #plan-state as you go.';
+        row.appendChild(_ccBtn('ghost', '⏩', 'Continue plan', actUrl(cont)));
+      }
+      hero.appendChild(row);
+    }
+    ids.forEach(function (id) {                          // Per-phase: Start after each .sec-head
+      var spec = actions[id]; if (!spec) return;
+      var section = document.getElementById(id); if (!section) return;
+      var head = section.querySelector('.sec-head'); if (!head || section.querySelector('.cc-actions')) return;
+      var row = document.createElement('div'); row.className = 'cc-actions';
+      if (spec.start)  row.appendChild(_ccBtn('start',  '▶', 'Start in Claude Code', actUrl(spec.start)));
+      if (row.children.length) head.parentNode.insertBefore(row, head.nextSibling);
+    });
   })();
 
   // ── "Waiting for your input" banner (Claude sets #plan-state `waiting` when it pauses to ask) ──
@@ -534,6 +859,162 @@
       bar.classList.add('clickable');
       bar.onclick = function () { _focusSection(sec); };
     }
+
+    // Phase 3 — Select & Answer: when deepLinks is configured, let the user reply FROM the doc.
+    //   Each waiting.options[] entry becomes a deep-link button pre-filled with that choice;
+    //   a free-form "Answer" button is always offered. Each opens a fresh claude-cli:// session
+    //   that first reloads context from planPath.
+    if (deepLinks && typeof w === 'object' && w) {
+      var planPath = deepLinks.planPath;
+      var ctx = planPath ? 'Open the plan at ' + planPath + ' and continue executing it. ' : '';
+      var stop = function (e) { e.stopPropagation(); };                     // don't trigger the bar's scroll
+      var row = document.createElement('div'); row.className = 'cc-actions';
+      (Array.isArray(w.options) ? w.options : []).forEach(function (o) {
+        var label = o && (o.label != null ? o.label : o.value); if (!label) return;
+        var ans = ctx + 'For its pending question (' + q + ') I choose: ' + label + '.'
+                + (o.value && o.value !== o.label ? ' [' + o.value + ']' : '');
+        var b = _ccBtn('start', '▶', label, actUrl(ans)); b.addEventListener('click', stop); row.appendChild(b);
+      });
+      var ff = _ccBtn('ghost', '✎', 'Answer in Claude Code', actUrl(ctx + 'Re: its pending question (' + q + ') — '));
+      ff.addEventListener('click', stop); row.appendChild(ff);
+      bar.appendChild(row);
+    }
+  })();
+
+  // ── Granular progress: sub-task checklists, per-phase timestamps, activity log ──
+  (function () {
+    var steps = (emb && emb.steps && typeof emb.steps === 'object') ? emb.steps : {};
+    var times = (emb && emb.times && typeof emb.times === 'object') ? emb.times : {};
+
+    // Sub-task checklists — any list marked data-steps="<trackedId>"
+    // Animate the sub-bar only when a step count CHANGES (else it replays on every 4s reload).
+    var STEPKEY = TKEY.replace('-theme', '-stepseen');
+    var stepSeen = {}; try { stepSeen = JSON.parse(sessionStorage.getItem(STEPKEY) || '{}') || {}; } catch (e) {}
+    var stepSeenNow = {};
+    [].slice.call(document.querySelectorAll('[data-steps]')).forEach(function (list) {
+      var id = list.getAttribute('data-steps');
+      var items = [].filter.call(list.children, function (n) { return n.tagName === 'LI'; });
+      var total = items.length; if (!total) return;
+      var spec = steps[id], done = {};
+      if (typeof spec === 'number') { for (var i = 0; i < spec && i < total; i++) done[i] = 1; }
+      else if (Array.isArray(spec)) { spec.forEach(function (i) { done[i] = 1; }); }
+      var doneN = 0;
+      items.forEach(function (li, i) {
+        if (!done[i]) return;
+        doneN++;
+        if (!li.querySelector('.step-check')) {
+          var c = document.createElement('span'); c.className = 'step-check'; c.textContent = '✓';
+          li.insertBefore(c, li.firstChild);
+        }
+        li.classList.add('step-done');
+      });
+      if (spec == null) return;
+      var section = list.closest('section'); if (!section) return;
+      var head = section.querySelector('.sec-head'); if (!head || section.querySelector('.subprog')) return;
+      var pct = Math.round(doneN / total * 100);
+      var wrap = document.createElement('div'); wrap.className = 'subprog';
+      wrap.innerHTML = '<span class="subbar"><i></i></span><span class="subcount">' + doneN + ' / ' + total + ' steps</span>';
+      head.parentNode.insertBefore(wrap, head.nextSibling);
+      var iEl = wrap.querySelector('i');
+      stepSeenNow[id] = doneN;
+      if (stepSeen[id] === doneN) { iEl.style.transition = 'none'; iEl.style.width = pct + '%'; }   // unchanged → no replay
+      else { (function (el, p) { requestAnimationFrame(function () { el.style.width = p + '%'; }); })(iEl, pct); }  // changed → animate once
+    });
+    try { sessionStorage.setItem(STEPKEY, JSON.stringify(stepSeenNow)); } catch (e) {}
+
+    // Per-phase timestamps — times[id] = { start, end }
+    Object.keys(times).forEach(function (id) {
+      var t = times[id]; if (!t) return;
+      var section = document.getElementById(id); if (!section) return;
+      var head = section.querySelector('.sec-head'); if (!head || section.querySelector('.ts-line')) return;
+      var parts = [];
+      if (t.start) parts.push('started <b>' + t.start + '</b>');
+      if (t.end) parts.push('done <b>' + t.end + '</b>');
+      if (!parts.length) return;
+      var line = document.createElement('div'); line.className = 'ts-line'; line.innerHTML = parts.join(' · ');
+      var anchor = section.querySelector('.subprog') || head;
+      anchor.parentNode.insertBefore(line, anchor.nextSibling);
+    });
+
+    // Activity log — timeline in the #activity section; self-hides when empty
+    var log = (emb && Array.isArray(emb.log)) ? emb.log : [];
+    var actSec = document.getElementById('activity');
+    var actLink = document.querySelector('nav.toc a[href="#activity"]');
+    if (actSec) {
+      if (log.length) {
+        var ul = actSec.querySelector('.timeline');
+        if (!ul) { ul = document.createElement('ul'); ul.className = 'timeline'; actSec.appendChild(ul); }
+        ul.innerHTML = '';
+        log.forEach(function (e) {
+          var li = document.createElement('li');
+          li.innerHTML = (e && e.t ? '<span class="tl-t">' + e.t + '</span>' : '') + (e && e.text ? '<span class="tl-x">' + e.text + '</span>' : '');
+          ul.appendChild(li);
+        });
+        actSec.style.display = ''; if (actLink) actLink.style.display = '';
+      } else {
+        actSec.style.display = 'none'; if (actLink) actLink.style.display = 'none';
+      }
+    }
+  })();
+
+  // ── Notify when needed: desktop notification + chime on `waiting` / completion (opt-in) ──
+  (function () {
+    var NKEY = TKEY.replace('-theme', '-notify');       // localStorage: user enabled notifications
+    var SIGKEY = TKEY.replace('-theme', '-notifsig');   // sessionStorage: last-notified signal
+    var btn = document.getElementById('notify-btn');
+    var supported = ('Notification' in window);
+
+    function enabled() { try { return localStorage.getItem(NKEY) === '1'; } catch (e) { return false; } }
+    function paint() {
+      if (!btn) return;
+      btn.classList.remove('on', 'blocked'); btn.disabled = false;
+      if (!supported) { btn.textContent = '🔔 Notifications n/a'; btn.disabled = true; return; }
+      if (enabled() && Notification.permission === 'granted') { btn.classList.add('on'); btn.textContent = '🔔 Notifications on'; }
+      else if (Notification.permission === 'denied') { btn.classList.add('blocked'); btn.textContent = '🔕 Blocked by browser'; }
+      else { btn.textContent = '🔔 Notify me'; }
+    }
+    function chime() {
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+        var ctx = new AC();
+        [880, 1175].forEach(function (f, i) {
+          var o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+          var t = ctx.currentTime + i * 0.16;
+          g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.18, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          o.start(t); o.stop(t + 0.24);
+        });
+        setTimeout(function () { try { ctx.close(); } catch (e) {} }, 800);
+      } catch (e) {}
+    }
+    paint();
+    if (btn && supported) btn.addEventListener('click', function () {
+      if (Notification.permission === 'granted') {
+        try { localStorage.setItem(NKEY, enabled() ? '0' : '1'); } catch (e) {}
+        paint(); if (enabled()) chime();
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(function (p) {
+          try { localStorage.setItem(NKEY, p === 'granted' ? '1' : '0'); } catch (e) {}
+          paint(); if (p === 'granted') chime();
+        });
+      } else { paint(); }
+    });
+
+    if (!supported || !enabled() || Notification.permission !== 'granted') return;
+
+    // Transition detection — fire only when the signal is NEW vs the last one notified this session
+    var doneNow = allDone();
+    var wq = (function () { var w = emb && emb.waiting; return w ? (typeof w === 'string' ? w : w.question) : null; })();
+    var prevSig = {}; try { prevSig = JSON.parse(sessionStorage.getItem(SIGKEY) || '{}') || {}; } catch (e) {}
+    var title = (document.title || 'Plan').replace(/^⏳\s*/, '');
+    if (wq && wq !== prevSig.waiting) {
+      try { new Notification('⏳ ' + title + ' — waiting for your input', { body: wq }); } catch (e) {}
+      chime();
+    } else if (doneNow && !prevSig.done) {
+      try { new Notification('✅ ' + title + ' — plan complete', { body: 'All sections done.' }); } catch (e) {}
+      chime();
+    }
+    try { sessionStorage.setItem(SIGKEY, JSON.stringify({ waiting: wq || null, done: !!doneNow })); } catch (e) {}
   })();
 
   // ── Theatrical animations (entrance, ring count-up, change celebrations, confetti) ──
@@ -615,6 +1096,64 @@
 
   })();
 
+  // ── Navigation: collapsible phases, status filter, keyboard jump ──
+  // NOTE: the page hard-reloads every RELOAD_MS, so each control persists its state and
+  // re-applies it on load — otherwise it would reset every few seconds.
+  var KCOLLAPSE = TKEY.replace('-theme', '-collapsed');  // localStorage: collapsed section ids
+  var KFILTER = TKEY.replace('-theme', '-filter');       // sessionStorage: active status filter
+
+  // Collapsible phases — inject a chevron into each phase .sec-head
+  (function () {
+    var collapsed = {};
+    try { (JSON.parse(localStorage.getItem(KCOLLAPSE) || '[]') || []).forEach(function (id) { collapsed[id] = 1; }); } catch (e) {}
+    function save() { try { localStorage.setItem(KCOLLAPSE, JSON.stringify(Object.keys(collapsed))); } catch (e) {} }
+    [].slice.call(document.querySelectorAll('section.card.phase')).forEach(function (sec) {
+      var head = sec.querySelector('.sec-head'); if (!head) return;
+      var chev = document.createElement('button');
+      chev.className = 'chev'; chev.type = 'button'; chev.setAttribute('aria-label', 'Collapse or expand section'); chev.textContent = '▾';
+      head.insertBefore(chev, head.firstChild);
+      if (collapsed[sec.id]) sec.classList.add('collapsed');
+      chev.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        sec.classList.toggle('collapsed');
+        if (sec.classList.contains('collapsed')) collapsed[sec.id] = 1; else delete collapsed[sec.id];
+        save();
+      });
+    });
+  })();
+
+  // Status filter — show only matching tracked phase sections (reference sections always show)
+  (function () {
+    var bar = document.getElementById('filterbar'); if (!bar) return;
+    var cur = 'all'; try { cur = sessionStorage.getItem(KFILTER) || 'all'; } catch (e) {}
+    function apply(f) {
+      ids.forEach(function (id) {
+        var sec = document.getElementById(id); if (sec) sec.style.display = (f === 'all' || st(id) === f) ? '' : 'none';
+      });
+      [].slice.call(bar.querySelectorAll('button')).forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-filter') === f); });
+    }
+    [].slice.call(bar.querySelectorAll('button')).forEach(function (b) {
+      b.addEventListener('click', function () { cur = b.getAttribute('data-filter'); try { sessionStorage.setItem(KFILTER, cur); } catch (e) {} apply(cur); });
+    });
+    apply(cur);
+  })();
+
+  // Keyboard jump — j / k between visible sections, g to top (ignored while typing)
+  (function () {
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target && e.target.tagName) || '';
+      if (e.metaKey || e.ctrlKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'g') { window.scrollTo({ top: 0, behavior: _reduce ? 'auto' : 'smooth' }); return; }
+      if (e.key !== 'j' && e.key !== 'k') return;
+      var secs = [].filter.call(document.querySelectorAll('main.main section[id]'), function (s) { return s.offsetParent !== null; });
+      if (!secs.length) return;
+      var y = window.scrollY + 80, idx = -1;
+      for (var i = 0; i < secs.length; i++) { if (secs[i].offsetTop <= y) idx = i; }
+      var next = e.key === 'j' ? Math.min(secs.length - 1, idx + 1) : Math.max(0, idx - 1);
+      _focusSection(secs[next].id);
+    });
+  })();
+
   // ── Scroll-spy ──
   var links = {};
   document.querySelectorAll('nav.toc a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
@@ -688,21 +1227,22 @@
     el.scrollIntoView({ behavior: _reduce ? 'auto' : 'smooth', block: 'start' });
   }
   (function () {
-    // Auto-scroll to the in-progress section ONCE per session — the first time one exists
-    // (whether it's already in progress when you open the doc, or a section flips to in-progress
-    // while you're watching). After that, we leave you wherever you scrolled to.
-    var DONEKEY = TKEY.replace('-theme', '-autofocused'); // sessionStorage: already auto-scrolled?
+    // Auto-scroll to the in-progress section — ONCE each time that section CHANGES (first open,
+    // or step N finishes and N+1 starts). Stays put on ordinary refreshes (same in-progress
+    // section) and preserves wherever the reader scrolled to.
+    var FKEY = TKEY.replace('-theme', '-focusid');   // sessionStorage: last in-progress id we scrolled to
     var curFocus = _firstDoing();
+    var lastFocus = null; try { lastFocus = sessionStorage.getItem(FKEY); } catch (e) {}
     var savedY = null; try { savedY = sessionStorage.getItem(SKEY); } catch (e) {}
     try { sessionStorage.removeItem(SKEY); } catch (e) {}
     var firstOpen = (savedY === null);
-    var alreadyFocused = false; try { alreadyFocused = sessionStorage.getItem(DONEKEY) === '1'; } catch (e) {}
 
-    if (curFocus && !alreadyFocused) {
-      try { sessionStorage.setItem(DONEKEY, '1'); } catch (e) {}   // mark done — only this once
+    if (curFocus && curFocus !== lastFocus) {
+      try { sessionStorage.setItem(FKEY, curFocus); } catch (e) {}   // remember it; scroll once
       setTimeout(function () { _focusSection(curFocus); }, firstOpen ? 600 : 0);
-    } else if (!firstOpen) {
-      _instantTo(parseInt(savedY, 10) || 0);              // keep the reader where they were
+    } else {
+      if (!curFocus) { try { sessionStorage.removeItem(FKEY); } catch (e) {} }  // reset when nothing in progress
+      if (!firstOpen) _instantTo(parseInt(savedY, 10) || 0);          // keep the reader where they were
     }
   })();
   setInterval(function () {

@@ -1,0 +1,136 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Habit Tracker Tests</title></head>
+<body>
+<pre id="out"></pre>
+<script>
+const results = [];
+function assert(cond, msg){ results.push({ok: !!cond, msg}); }
+function assertEqual(a, b, msg){ assert(JSON.stringify(a)===JSON.stringify(b), `${msg} (got ${JSON.stringify(a)}, want ${JSON.stringify(b)})`); }
+function report(){
+  const out = document.getElementById('out');
+  const failed = results.filter(r=>!r.ok);
+  out.textContent = results.map(r=>`${r.ok?'PASS':'FAIL'} ${r.msg}`).join('\n')
+    + `\n\n${results.length-failed.length}/${results.length} passed`;
+}
+
+// ---- date helpers (paste of index.html implementation) ----
+function dateKey(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayKey(){ return dateKey(new Date()); }
+function keyForOffset(n){ const d=new Date(); d.setDate(d.getDate()-n); return dateKey(d); }
+function lastNDays(n){ const out=[]; for(let i=n-1;i>=0;i--) out.push(keyForOffset(i)); return out; }
+
+// ---- tests: dates ----
+assertEqual(dateKey(new Date(2026,5,18)), '2026-06-18', 'dateKey pads month/day');
+assertEqual(dateKey(new Date(2026,0,3)), '2026-01-03', 'dateKey single digits padded');
+assert(/^\d{4}-\d{2}-\d{2}$/.test(todayKey()), 'todayKey format');
+assertEqual(keyForOffset(0), todayKey(), 'offset 0 is today');
+assertEqual(lastNDays(3).length, 3, 'lastNDays length');
+assertEqual(lastNDays(3)[2], todayKey(), 'lastNDays ends today');
+
+// ---- store (paste of index.html implementation; in-memory backing) ----
+function defaultState(){ return {version:1, habits:[], completions:{}}; }
+function migrate(raw){
+  if(raw && raw.version===1 && Array.isArray(raw.habits) && raw.completions) return raw;
+  return defaultState();
+}
+function makeStore(backing){
+  return {
+    load(){ try { return migrate(JSON.parse(backing.get())); } catch(e){ return defaultState(); } },
+    save(s){ backing.set(JSON.stringify(s)); }
+  };
+}
+
+// ---- tests: store ----
+let mem = { _v: null, get(){return this._v}, set(v){this._v=v} };
+let s = makeStore(mem);
+assertEqual(s.load(), defaultState(), 'load empty -> default');
+mem._v = '{not json';
+assertEqual(s.load(), defaultState(), 'load corrupt -> default');
+mem._v = JSON.stringify({version:0});
+assertEqual(s.load(), defaultState(), 'load old version -> default');
+const good = {version:1, habits:[{id:'a',name:'X',emoji:'',color:'',createdAt:'',order:0}], completions:{a:{}}};
+mem._v = JSON.stringify(good);
+assertEqual(s.load(), good, 'load valid -> roundtrip');
+
+// ---- model (pure) — test paste uses deterministic id; index.html uses crypto.randomUUID ----
+function addHabit(state,{name,emoji='',color='#1f7fd6'}){
+  const order = state.habits.length;
+  const id = 'id'+order;
+  const habit = {id,name,emoji,color,createdAt:'',order};
+  return {...state, habits:[...state.habits, habit], completions:{...state.completions,[id]:{}}};
+}
+function renameHabit(state,id,name){
+  return {...state, habits: state.habits.map(h=>h.id===id?{...h,name}:h)};
+}
+function deleteHabit(state,id){
+  const completions = {...state.completions}; delete completions[id];
+  return {...state, habits: state.habits.filter(h=>h.id!==id), completions};
+}
+function reorderHabit(state,id,direction){
+  const habits=[...state.habits]; const i=habits.findIndex(h=>h.id===id); const j=i+direction;
+  if(i<0||j<0||j>=habits.length) return state;
+  [habits[i],habits[j]]=[habits[j],habits[i]];
+  return {...state, habits: habits.map((h,idx)=>({...h,order:idx}))};
+}
+function isDone(state,id,key){ return !!(state.completions[id]&&state.completions[id][key]); }
+function toggleCompletion(state,id,key){
+  const cur = {...(state.completions[id]||{})};
+  if(cur[key]) delete cur[key]; else cur[key]=true;
+  return {...state, completions:{...state.completions,[id]:cur}};
+}
+
+// ---- tests: model ----
+let mst = defaultState();
+mst = addHabit(mst,{name:'Read'});
+assertEqual(mst.habits.length, 1, 'addHabit adds');
+assertEqual(mst.habits[0].name, 'Read', 'addHabit name');
+mst = renameHabit(mst, mst.habits[0].id, 'Read 20m');
+assertEqual(mst.habits[0].name, 'Read 20m', 'renameHabit');
+mst = toggleCompletion(mst, mst.habits[0].id, '2026-06-18');
+assert(isDone(mst, mst.habits[0].id, '2026-06-18'), 'toggle on');
+mst = toggleCompletion(mst, mst.habits[0].id, '2026-06-18');
+assert(!isDone(mst, mst.habits[0].id, '2026-06-18'), 'toggle off');
+let mid0 = mst.habits[0].id;
+mst = deleteHabit(mst, mid0);
+assertEqual(mst.habits.length, 0, 'deleteHabit removes');
+assertEqual(mst.completions[mid0], undefined, 'deleteHabit drops completions');
+
+// ---- streaks (paste of index.html implementation) ----
+function streakCurrent(state,id){
+  const done = state.completions[id]||{};
+  let start = done[keyForOffset(0)] ? 0 : (done[keyForOffset(1)] ? 1 : null);
+  if(start===null) return 0;
+  let count=0, i=start;
+  while(done[keyForOffset(i)]){ count++; i++; }
+  return count;
+}
+function streakLongest(state,id){
+  const done = state.completions[id]||{};
+  let best=0, run=0;
+  for(let i=365;i>=0;i--){ if(done[keyForOffset(i)]){ run++; best=Math.max(best,run); } else { run=0; } }
+  return best;
+}
+
+// ---- tests: streaks ----
+function withDays(keys){ const s=defaultState(); const id='h'; s.habits.push({id,name:'h',emoji:'',color:'',createdAt:'',order:0}); s.completions[id]={}; keys.forEach(k=>s.completions[id][k]=true); return {s,id}; }
+{ const {s,id}=withDays([keyForOffset(0),keyForOffset(1)]); assertEqual(streakCurrent(s,id),2,'current 2 ending today'); }
+{ const {s,id}=withDays([keyForOffset(1),keyForOffset(2)]); assertEqual(streakCurrent(s,id),2,'current 2 ending yesterday'); }
+{ const {s,id}=withDays([keyForOffset(0),keyForOffset(2)]); assertEqual(streakCurrent(s,id),1,'gap breaks current'); }
+{ const {s,id}=withDays([]); assertEqual(streakCurrent(s,id),0,'empty current 0'); }
+{ const {s,id}=withDays([keyForOffset(10),keyForOffset(11),keyForOffset(12),keyForOffset(5)]); assertEqual(streakLongest(s,id),3,'longest 3'); }
+
+// ---- tests: reorder ----
+let r = defaultState();
+r = addHabit(r,{name:'A'}); r = addHabit(r,{name:'B'});
+const bId=r.habits[1].id;
+r = reorderHabit(r, bId, -1); // move B up
+assertEqual(r.habits[0].name,'B','reorder moved B up');
+assertEqual(r.habits[0].order,0,'reorder reindexes order');
+r = reorderHabit(r, r.habits[0].id, -1); // already top, no-op
+assertEqual(r.habits[0].name,'B','reorder top is no-op');
+report();
+</script>
+</body></html>

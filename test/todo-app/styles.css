@@ -1,0 +1,129 @@
+/* Todo app — "Colorful & playful" styling pass (Phase 6). */
+:root {
+  --text: #2a2150;
+  --muted: #8b86a8;
+  --card: #ffffff;
+  --border: #efe7fb;
+  --pink: #ff5d8f;
+  --violet: #8b5cf6;
+  --cyan: #22d3ee;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --grad: linear-gradient(135deg, #ff5d8f 0%, #8b5cf6 55%, #22d3ee 100%);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: start center;
+  padding: 56px 16px;
+  background:
+    radial-gradient(900px 500px at 12% -8%, rgba(255,93,143,.30), transparent 60%),
+    radial-gradient(800px 520px at 95% 0%, rgba(34,211,238,.28), transparent 55%),
+    linear-gradient(160deg, #fdf4ff 0%, #eef2ff 45%, #ecfeff 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  font: 16px/1.5 ui-rounded, "Segoe UI", -apple-system, Roboto, sans-serif;
+}
+.app {
+  width: 100%;
+  max-width: 480px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 26px;
+  box-shadow: 0 18px 50px -18px rgba(139,92,246,.45), 0 2px 0 rgba(255,255,255,.7) inset;
+}
+.app-head h1 {
+  margin: 0 0 18px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.app-head h1::after { content: " ✨"; -webkit-text-fill-color: initial; }
+
+.new-form { display: flex; gap: 10px; }
+.new-input {
+  flex: 1; padding: 12px 14px; border-radius: 13px;
+  border: 2px solid var(--border); background: #fbf9ff; color: var(--text);
+  font: inherit; transition: border-color .15s, box-shadow .15s;
+}
+.new-input::placeholder { color: var(--muted); }
+.new-input:focus {
+  outline: none; border-color: var(--violet);
+  box-shadow: 0 0 0 4px rgba(139,92,246,.18);
+}
+.add-btn {
+  padding: 12px 20px; border-radius: 13px; border: none;
+  background: var(--grad); background-size: 160% 160%; color: #fff;
+  font: inherit; font-weight: 700; cursor: pointer;
+  box-shadow: 0 8px 18px -6px rgba(255,93,143,.6);
+  transition: transform .12s, box-shadow .12s, background-position .3s;
+}
+.add-btn:hover { transform: translateY(-2px) scale(1.02); background-position: 100% 0; box-shadow: 0 12px 22px -6px rgba(139,92,246,.6); }
+.add-btn:active { transform: translateY(0) scale(.98); }
+
+.list { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+
+.item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 14px;
+  background: #fbf9ff; border: 2px solid var(--border);
+  animation: pop-in .28s cubic-bezier(.2,.7,.2,1.2);
+  transition: transform .12s, border-color .15s, box-shadow .15s;
+}
+.item:hover { transform: translateX(3px); border-color: #e3d7fb; box-shadow: 0 6px 16px -10px rgba(139,92,246,.6); }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: none; } }
+
+.toggle {
+  appearance: none; -webkit-appearance: none; flex: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2.5px solid #d8c9f7; background: #fff; cursor: pointer;
+  display: grid; place-items: center; transition: all .15s;
+}
+.toggle:hover { border-color: var(--violet); }
+.toggle:checked { border-color: var(--green); background: var(--green); }
+.toggle:checked::after { content: "✓"; color: #fff; font-size: 14px; font-weight: 800; }
+
+.text { flex: 1; word-break: break-word; }
+
+.item.done .text { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--pink); }
+.item.done { background: #f6fffb; border-color: #d4f7e8; }
+
+.del {
+  flex: none; width: 30px; height: 30px; border-radius: 9px;
+  border: none; background: transparent; color: var(--muted);
+  font-size: 15px; cursor: pointer; transition: all .14s;
+}
+.del:hover { background: #ffe4ec; color: var(--pink); transform: rotate(90deg); }
+
+.empty {
+  text-align: center; padding: 26px 10px; color: var(--muted);
+  border: 2px dashed var(--border); border-radius: 14px; background: #fbf9ff;
+}
+.empty::before { content: "🎈"; display: block; font-size: 30px; margin-bottom: 8px; }
+
+.app-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 20px; padding-top: 16px; border-top: 2px dashed var(--border);
+  font-size: 13.5px; color: var(--muted);
+}
+.count { font-weight: 700; }
+.filters { display: flex; gap: 6px; }
+.filter {
+  padding: 6px 13px; border-radius: 999px; border: 2px solid transparent;
+  background: #f2ecff; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .14s;
+}
+.filter:hover { color: var(--violet); }
+.filter.active { color: #fff; border-color: transparent; background: var(--grad); box-shadow: 0 6px 14px -6px rgba(139,92,246,.7); }
+
+@media (prefers-reduced-motion: reduce) {
+  .item, .add-btn, .del, .toggle, .filter { animation: none !important; transition: none !important; }
+}

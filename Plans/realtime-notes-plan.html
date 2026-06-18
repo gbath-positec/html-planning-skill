@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realtime Collaborative Notes — Build Plan</title>
+<script>try{var _t=localStorage.getItem('realtime-notes-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --bg-grid: rgba(120,140,180,.045);
+    --panel: #14171f;
+    --panel-2: #1a1e28;
+    --border: #272c38;
+    --border-soft: #1f2430;
+    --text: #e8ebf2;
+    --muted: #98a2b6;
+    --faint: #6b7488;
+    --accent: #56b6ff;
+    --accent-2: #8b7bff;
+    --cyan: #34d3c4;
+    --green: #45c463;
+    --amber: #e0a93b;
+    --code-bg: #0e1016;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.25);
+  }
+  html[data-theme="light"] {
+    --bg: #f5f6f9;
+    --bg-grid: rgba(40,60,100,.04);
+    --panel: #ffffff;
+    --panel-2: #f0f2f6;
+    --border: #dde1e9;
+    --border-soft: #e7eaf0;
+    --text: #1a1e28;
+    --muted: #5a6478;
+    --faint: #8b93a4;
+    --accent: #1f7fd6;
+    --accent-2: #6b54e6;
+    --cyan: #129f92;
+    --green: #2e9e4a;
+    --amber: #b9801b;
+    --code-bg: #f0f2f6;
+    --shadow: 0 1px 2px rgba(20,30,60,.06), 0 8px 24px rgba(20,30,60,.06);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0 / 100% 32px,
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0 / 32px 100%,
+      var(--bg);
+    color: var(--text);
+    font: 15.5px/1.65 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .85em; background: var(--code-bg); border: 1px solid var(--border-soft);
+    padding: 1px 6px; border-radius: 5px; color: var(--text);
+  }
+  strong { color: var(--text); font-weight: 650; }
+  em { color: var(--muted); font-style: italic; }
+
+  .shell { display: grid; grid-template-columns: 264px minmax(0, 1fr); max-width: 1220px; margin: 0 auto; }
+  .sidebar {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 28px 20px 40px; border-right: 1px solid var(--border-soft);
+  }
+  .main { padding: 36px 44px 120px; min-width: 0; }
+  @media (max-width: 940px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border-soft); }
+    .main { padding: 28px 22px 80px; }
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+  .brand b { font-size: 14px; letter-spacing: .2px; }
+  .brand-sub { font-size: 11.5px; color: var(--faint); font-family: ui-monospace, monospace; margin: 0 0 22px 19px; }
+
+  .ring-wrap { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 18px;
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 12px; }
+  .ring { --pct: 0; position: relative; width: 46px; height: 46px; border-radius: 50%; flex: none;
+    background: conic-gradient(var(--green) calc(var(--pct) * 1%), var(--panel-2) 0);
+    display: grid; place-items: center; }
+  .ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--panel); }
+  .ring span { position: relative; z-index: 1; font-size: 11px; font-weight: 700; }
+  .ring-meta { font-size: 12px; line-height: 1.35; }
+  .ring-meta b { display: block; font-size: 13px; }
+  .ring-meta span { color: var(--muted); }
+
+  nav.toc { display: flex; flex-direction: column; gap: 1px; }
+  nav.toc a {
+    color: var(--muted); font-size: 13px; padding: 6px 10px; border-radius: 7px;
+    display: flex; align-items: center; gap: 8px; border-left: 2px solid transparent; transition: all .12s;
+  }
+  nav.toc a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
+  nav.toc a.active { color: var(--text); background: var(--panel); border-left-color: var(--accent); font-weight: 600; }
+  nav.toc a .mk { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex: none; }
+  nav.toc a[data-st="doing"] .mk { background: var(--amber); }
+  nav.toc a[data-st="done"] .mk { background: var(--green); }
+  .toc-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); margin: 18px 0 6px 10px; }
+
+  /* ── Sidebar subtasks (nested, collapsible) ── */
+  nav.toc .toc-group { display: flex; flex-direction: column; }
+  nav.toc .toc-row { display: flex; align-items: center; gap: 1px; }
+  nav.toc .toc-row > a { flex: 1; min-width: 0; }
+  .toc-caret { flex: none; width: 16px; height: 26px; display: grid; place-items: center; cursor: pointer;
+    background: none; border: none; padding: 0; color: var(--faint); font-size: 9px; font-family: inherit; transition: transform .15s; }
+  .toc-caret:hover { color: var(--text); }
+  .toc-caret.empty { visibility: hidden; }
+  .toc-group.open .toc-caret { transform: rotate(90deg); }
+  .toc-sub { display: none; flex-direction: column; margin: 1px 0 5px; }
+  .toc-group.open .toc-sub { display: flex; }
+  .toc-sub a { color: var(--faint); font-size: 12px; padding: 4px 10px 4px 33px; border-radius: 6px;
+    display: flex; align-items: center; gap: 7px; border-left: 2px solid transparent; line-height: 1.35; }
+  .toc-sub a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
+  .toc-sub .sdot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); flex: none; }
+  .toc-sub .schk { width: 5px; flex: none; color: var(--green); font-size: 11px; line-height: 1; text-align: center; }
+  .toc-sub a.sub-done { color: var(--muted); }
+  .toc-sub a.sub-done .slab { text-decoration: line-through; text-decoration-color: var(--faint); }
+
+  .theme-btn {
+    margin-top: 22px; width: 100%; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px; transition: all .12s;
+  }
+  .theme-btn:hover { color: var(--text); border-color: var(--border); }
+
+  .hero { margin-bottom: 28px; }
+  .eyebrow { font-family: ui-monospace, monospace; font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); }
+  .hero h1 { font-size: 34px; line-height: 1.1; letter-spacing: -.6px; margin: 10px 0 12px; font-weight: 700; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 60ch; margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .chip { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border-soft); padding: 5px 11px; border-radius: 999px; }
+  .chip b { color: var(--text); }
+
+  .roadmap { display: flex; gap: 0; margin: 28px 0 8px; padding: 4px; background: var(--panel);
+    border: 1px solid var(--border-soft); border-radius: 14px; overflow-x: auto; }
+  .rm-node { flex: 1 1 0; min-width: 92px; text-align: center; padding: 12px 8px; border-radius: 10px;
+    cursor: pointer; position: relative; transition: background .12s; }
+  .rm-node:hover { background: var(--panel-2); text-decoration: none; }
+  .rm-num { width: 30px; height: 30px; margin: 0 auto 7px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 13px; font-weight: 700; font-family: ui-monospace, monospace;
+    background: var(--panel-2); color: var(--faint); border: 1.5px solid var(--border); transition: all .15s; }
+  .rm-node[data-st="doing"] .rm-num { color: var(--amber); border-color: var(--amber); box-shadow: 0 0 0 3px rgba(224,169,59,.12); }
+  .rm-node[data-st="done"] .rm-num { color: #fff; background: var(--green); border-color: var(--green); }
+  .rm-label { font-size: 11px; color: var(--muted); line-height: 1.25; }
+
+  section { scroll-margin-top: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 16px;
+    padding: 26px 30px; margin: 16px 0; box-shadow: var(--shadow); }
+  .card.phase { border-left: 3px solid var(--accent-2); }
+  .card.phase[data-accent="green"] { border-left-color: var(--cyan); }
+  .card.phase[data-accent="blue"] { border-left-color: var(--accent); }
+  .card.deferred { border-left-color: var(--amber); }
+
+  .sec-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
+  .sec-head .titles { min-width: 0; }
+  .sec-kicker { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+  h2 { font-size: 23px; letter-spacing: -.3px; margin: 4px 0 0; font-weight: 700; }
+  h2 .muted-tail { font-size: 14px; color: var(--faint); font-weight: 400; }
+  h3 { font-size: 14px; color: var(--accent); margin: 22px 0 8px; letter-spacing: .01em; }
+  .plain h2 { padding-bottom: 10px; border-bottom: 1px solid var(--border-soft); margin-bottom: 10px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0; padding-left: 20px; }
+  li { margin: 6px 0; }
+  li::marker { color: var(--faint); }
+
+  .status { flex: none; font-family: inherit; font-size: 11.5px; font-weight: 650; line-height: 1;
+    padding: 8px 14px; border-radius: 999px; user-select: none; white-space: nowrap;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); transition: all .14s; }
+  .status::before { content: "○ "; }
+  .status[data-state="doing"] { color: var(--amber); border-color: rgba(224,169,59,.5); background: rgba(224,169,59,.13); }
+  .status[data-state="doing"]::before { content: "◐ "; }
+  .status[data-state="done"] { color: var(--green); border-color: rgba(69,196,99,.5); background: rgba(69,196,99,.14); }
+  .status[data-state="done"]::before { content: "✓ "; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px;
+    background: var(--panel-2); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 13px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+  th { background: color-mix(in srgb, var(--panel-2) 70%, var(--border)); color: var(--text);
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+  td:first-child { color: var(--accent); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+
+  .callout { border-radius: 10px; padding: 13px 17px; margin: 16px 0; font-size: 14px;
+    background: color-mix(in srgb, var(--accent) 9%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); border-left-width: 3px; }
+  .callout.warn { background: color-mix(in srgb, var(--amber) 10%, var(--panel)); border-color: color-mix(in srgb, var(--amber) 32%, transparent); }
+  .callout.ok { background: color-mix(in srgb, var(--green) 10%, var(--panel)); border-color: color-mix(in srgb, var(--green) 32%, transparent); }
+
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+  .pill.defer { background: rgba(224,169,59,.14); color: var(--amber); border: 1px solid rgba(224,169,59,.4); }
+
+  .diagram { background: var(--code-bg); border: 1px solid var(--border-soft); border-radius: 12px; padding: 22px; margin: 16px 0; }
+  .dg-title { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-bottom: 16px; }
+  .flow { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; }
+  .flow .col { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+  .node { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; font-size: 12.5px; min-width: 116px; }
+  .node b { display: block; font-size: 12.5px; }
+  .node small { color: var(--faint); font-size: 10.5px; font-family: ui-monospace, monospace; }
+  .node.hl { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .node.q { border-color: var(--cyan); }
+  .node.ans { border-color: var(--green); }
+  .arrow { align-self: center; color: var(--faint); font-size: 18px; }
+
+  .schema { font-family: ui-monospace, monospace; font-size: 12.5px; }
+  .schema .row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--border-soft); }
+  .schema .row:last-child { border-bottom: none; }
+  .schema .col-name { color: var(--accent); min-width: 150px; }
+  .schema .col-type { color: var(--cyan); min-width: 130px; }
+  .schema .col-note { color: var(--faint); }
+
+  /* sequence — numbered vertical steps with a connecting rail (procedures, ordered work) */
+  .steps { list-style: none; margin: 10px 0; padding: 0; counter-reset: step; }
+  .steps li { position: relative; padding: 0 0 16px 40px; }
+  .steps li::before { content: counter(step); counter-increment: step; position: absolute; left: 0; top: -2px;
+    width: 25px; height: 25px; border-radius: 50%; display: grid; place-items: center; font-family: ui-monospace, monospace;
+    font-size: 12px; font-weight: 700; color: var(--accent); background: var(--panel-2); border: 1.5px solid var(--border); }
+  .steps li::after { content: ""; position: absolute; left: 11.5px; top: 25px; bottom: -2px; width: 1.5px; background: var(--border-soft); }
+  .steps li:last-child { padding-bottom: 0; }
+  .steps li:last-child::after { display: none; }
+  .steps li b { color: var(--text); }
+
+  /* comparison — side-by-side cards (before/after, option A vs B, trade-offs) */
+  .compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
+  .compare > div { background: var(--panel); border: 1px solid var(--border-soft); border-top: 2px solid var(--border); border-radius: 11px; padding: 13px 16px; }
+  .compare .ct { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin-bottom: 8px; }
+  .compare > .good { border-top-color: var(--green); }
+  .compare > .bad  { border-top-color: var(--amber); }
+  .compare > .pick { border-top-color: var(--accent); }
+  .compare ul { margin: 0; padding-left: 16px; font-size: 13px; }
+  .compare li { margin: 4px 0; }
+
+  /* hierarchy — file tree / decomposition (author with ├─ └─ │ and indentation) */
+  .tree { font-family: ui-monospace, monospace; font-size: 12.5px; line-height: 1.75; white-space: pre; color: var(--muted); overflow-x: auto; }
+  .tree .dir { color: var(--cyan); }
+  .tree .nm { color: var(--accent); }
+  .tree small { color: var(--faint); font-family: ui-monospace, monospace; }
+
+  hr { border: none; border-top: 1px solid var(--border-soft); margin: 30px 0; }
+  footer { color: var(--faint); font-size: 12.5px; margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--border-soft); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  /* ── Theatrical animations ── */
+  @keyframes plan-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  @keyframes pop-done { 0% { transform: scale(1); } 35% { transform: scale(1.16); } 70% { transform: scale(.97); } 100% { transform: scale(1); } }
+  @keyframes glow-done { 0% { box-shadow: 0 0 0 0 rgba(69,196,99,.55); } 100% { box-shadow: 0 0 0 16px rgba(69,196,99,0); } }
+  @keyframes breathe-amber { 0%,100% { box-shadow: 0 0 0 0 rgba(224,169,59,0); } 50% { box-shadow: 0 0 0 6px rgba(224,169,59,.16); } }
+  @keyframes live-ping { 0% { transform: scale(1); opacity: .85; } 70% { transform: scale(2.8); opacity: 0; } 100% { opacity: 0; } }
+  .confetti-cv { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
+  .status.celebrate-done { animation: pop-done .6s ease, glow-done 1s ease .05s; }
+  .rm-node.celebrate-done .rm-num { animation: pop-done .6s ease, glow-done 1s ease .05s; }
+  .status.celebrate-doing { animation: pop-done .5s ease; }
+  .status.is-breathing { animation: breathe-amber 2.4s ease-in-out infinite; }
+  .rm-node.is-breathing .rm-num { animation: breathe-amber 2.4s ease-in-out infinite; }
+  .live-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: .14em; color: var(--green); font-family: ui-monospace, monospace; }
+  .live-badge .live-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .live-badge .live-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--green); animation: live-ping 1.6s ease-out infinite; }
+
+  /* "Waiting for your input" banner — shown when #plan-state has a `waiting` field set */
+  .await-bar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 50;
+    display: none; align-items: center; gap: 11px; max-width: min(760px, 92vw);
+    padding: 10px 18px; border-radius: 999px; text-align: left;
+    background: color-mix(in srgb, var(--amber) 18%, var(--panel));
+    border: 1px solid color-mix(in srgb, var(--amber) 55%, transparent);
+    box-shadow: 0 8px 28px rgba(0,0,0,.4); color: var(--text); font-size: 13.5px; line-height: 1.4;
+    backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    animation: await-pulse 2.2s ease-in-out infinite; }
+  .await-bar.on { display: flex; }
+  .await-bar.clickable { cursor: pointer; }
+  .await-bar.clickable:hover { border-color: var(--amber); }
+  .await-bar .wd { position: relative; width: 9px; height: 9px; border-radius: 50%; background: var(--amber); flex: none; box-shadow: 0 0 10px var(--amber); }
+  .await-bar .wd::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--amber); animation: live-ping 1.6s ease-out infinite; }
+  .await-bar b { color: var(--amber); font-weight: 700; }
+  .await-bar .qt { color: var(--muted); }
+  @keyframes await-pulse { 0%,100% { box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 0 rgba(224,169,59,0); } 50% { box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 7px rgba(224,169,59,.16); } }
+
+  /* ── Notify bell (sidebar) ── */
+  .notify-btn { margin-top: 10px; width: 100%; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px; transition: all .12s; }
+  .notify-btn:hover { color: var(--text); border-color: var(--border); }
+  .notify-btn.on { color: var(--green); border-color: color-mix(in srgb, var(--green) 50%, transparent); background: color-mix(in srgb, var(--green) 10%, var(--panel)); }
+  .notify-btn.blocked { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+  .notify-btn[disabled] { opacity: .5; cursor: default; }
+
+  /* ── Status filter (sidebar) ── */
+  .filterbar { display: flex; gap: 4px; margin-top: 6px; }
+  .filterbar button { flex: 1; cursor: pointer; font-family: inherit; font-size: 10.5px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 7px; padding: 6px 3px; transition: all .12s; }
+  .filterbar button:hover { color: var(--text); }
+  .filterbar button.active { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel)); font-weight: 600; }
+
+  /* ── Collapsible phases ── */
+  .chev { flex: none; cursor: pointer; width: 24px; height: 24px; margin-top: 2px; border-radius: 6px; border: 1px solid var(--border-soft);
+    background: var(--panel-2); color: var(--muted); font-size: 11px; line-height: 1; display: grid; place-items: center;
+    transition: transform .15s, color .12s; user-select: none; }
+  .chev:hover { color: var(--text); }
+  .card.collapsed .chev { transform: rotate(-90deg); }
+  .card.collapsed > *:not(.sec-head) { display: none; }
+  .card.collapsed .subprog, .card.collapsed .ts-line { display: none; }
+  .sec-head .chev { margin-right: 4px; }
+
+  /* ── Sub-task checklists ── */
+  .step-check { color: var(--green); font-weight: 700; margin-right: 6px; }
+  .step-done { opacity: .55; }
+  .subprog { display: flex; align-items: center; gap: 9px; margin: 10px 0 2px; }
+  .subprog .subbar { position: relative; flex: 1; max-width: 240px; height: 5px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+  .subprog .subbar > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; background: var(--green); transition: width .45s cubic-bezier(.2,.7,.2,1); }
+  .subprog .subcount { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .ts-line { font-family: ui-monospace, monospace; font-size: 11px; color: var(--faint); margin: 6px 0 0; }
+  .ts-line b { color: var(--muted); font-weight: 600; }
+
+  /* ── Activity log timeline ── */
+  .timeline { list-style: none; margin: 8px 0 0; padding: 0; }
+  .timeline li { position: relative; padding: 0 0 14px 26px; font-size: 13.5px; }
+  .timeline li::before { content: ""; position: absolute; left: 3px; top: 5px; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 18%, transparent); }
+  .timeline li::after { content: ""; position: absolute; left: 7px; top: 16px; bottom: -2px; width: 1.5px; background: var(--border-soft); }
+  .timeline li:last-child { padding-bottom: 0; }
+  .timeline li:last-child::after { display: none; }
+  .timeline .tl-t { font-family: ui-monospace, monospace; font-size: 11px; color: var(--faint); margin-right: 9px; }
+  .timeline .tl-x { color: var(--text); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status, .rm-num, .card, .hero, .roadmap, .live-badge .live-dot::after, .await-bar, .await-bar .wd::after { animation: none !important; }
+    .subprog .subbar > i, .chev { transition: none !important; }
+    .confetti-cv { display: none; }
+  }
+
+  /* ── Futuristic: background, glass, spotlight, HUD ── */
+  .bgfx { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .bgfx::before, .bgfx::after { content: ""; position: absolute; border-radius: 50%; filter: blur(85px); opacity: .5; mix-blend-mode: screen; }
+  .bgfx::before { width: 60vw; height: 60vw; left: -12vw; top: -22vh; background: radial-gradient(circle, rgba(139,123,255,.55), transparent 60%); animation: aurora-a 26s ease-in-out infinite; }
+  .bgfx::after  { width: 55vw; height: 55vw; right: -16vw; bottom: -26vh; background: radial-gradient(circle, rgba(52,211,196,.45), transparent 60%); animation: aurora-b 32s ease-in-out infinite; }
+  @keyframes aurora-a { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8vw,6vh) scale(1.15); } }
+  @keyframes aurora-b { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7vw,-5vh) scale(1.1); } }
+  #stars { position: absolute; inset: 0; display: block; }
+  html[data-theme="light"] .bgfx { opacity: .55; }
+  html[data-theme="light"] .bgfx::before { background: radial-gradient(circle, rgba(107,84,230,.32), transparent 60%); }
+  html[data-theme="light"] .bgfx::after  { background: radial-gradient(circle, rgba(18,159,146,.28), transparent 60%); }
+
+  .shell { position: relative; z-index: 1; }
+  .card { background: color-mix(in srgb, var(--panel) 72%, transparent); backdrop-filter: blur(14px) saturate(1.25); -webkit-backdrop-filter: blur(14px) saturate(1.25); }
+  .sidebar { backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1); background: color-mix(in srgb, var(--bg) 35%, transparent); }
+
+  .spotlight { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .5s; mix-blend-mode: screen;
+    background: radial-gradient(240px circle at var(--mx,-200px) var(--my,-200px), color-mix(in srgb, var(--accent) 22%, transparent), transparent 72%); }
+  .spotlight.on { opacity: 1; }
+
+  .hero h1 { background: linear-gradient(100deg, var(--text) 22%, var(--cyan) 42%, var(--accent-2) 56%, var(--text) 74%); background-size: 220% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: title-sheen 7.5s linear infinite; }
+  @keyframes title-sheen { to { background-position: 220% center; } }
+
+  .hud { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+  .hud span { position: absolute; width: 24px; height: 24px; border: 1.5px solid color-mix(in srgb, var(--cyan) 55%, transparent); opacity: .45; }
+  .hud span:nth-child(1) { top: 14px; left: 14px; border-right: none; border-bottom: none; }
+  .hud span:nth-child(2) { top: 14px; right: 14px; border-left: none; border-bottom: none; }
+  .hud span:nth-child(3) { bottom: 14px; left: 14px; border-right: none; border-top: none; }
+  .hud span:nth-child(4) { bottom: 14px; right: 14px; border-left: none; border-top: none; }
+
+  @keyframes ring-surge { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan) 70%, transparent); } 100% { box-shadow: 0 0 0 20px transparent; } }
+  .ring.surge { animation: ring-surge 1s ease-out; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bgfx::before, .bgfx::after, .hero h1, .ring.surge { animation: none !important; }
+    .spotlight { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="bgfx"><canvas id="stars"></canvas></div>
+<div class="spotlight"></div>
+<div class="hud"><span></span><span></span><span></span><span></span></div>
+
+<!-- "Waiting for your input" banner — populated from #plan-state `waiting` when set -->
+<div class="await-bar" id="await-bar" role="status" title="Jump to the section in question">
+  <span class="wd"></span>
+  <span class="wq"><b>Waiting for your input</b> <span class="qt" id="await-text"></span></span>
+</div>
+
+<div class="shell">
+
+  <!-- ───────── Sidebar ───────── -->
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span><b>Realtime Notes</b></div>
+    <div class="brand-sub">⎇ feature/collab-sync</div>
+
+    <div class="ring-wrap">
+      <div class="ring" id="ring"><span id="ring-pct">0%</span></div>
+      <div class="ring-meta"><b id="ring-count">0 / N</b><span>build sections done</span></div>
+    </div>
+
+    <div class="toc-label">Plan</div>
+    <nav class="toc" id="toc">
+      <div class="toc-group" data-group="phase1">
+        <div class="toc-row"><button class="toc-caret" type="button" aria-label="Expand subtasks">▸</button><a href="#phase1" data-track="phase1" class="toc-head"><span class="mk"></span>1 · Foundation &amp; schema</a></div>
+        <div class="toc-sub"></div>
+      </div>
+      <div class="toc-group" data-group="phase2">
+        <div class="toc-row"><button class="toc-caret" type="button" aria-label="Expand subtasks">▸</button><a href="#phase2" data-track="phase2" class="toc-head"><span class="mk"></span>2 · Auth &amp; sessions</a></div>
+        <div class="toc-sub"></div>
+      </div>
+      <div class="toc-group" data-group="phase3">
+        <div class="toc-row"><button class="toc-caret" type="button" aria-label="Expand subtasks">▸</button><a href="#phase3" data-track="phase3" class="toc-head"><span class="mk"></span>3 · Realtime sync engine</a></div>
+        <div class="toc-sub"></div>
+      </div>
+      <div class="toc-group" data-group="phase4">
+        <div class="toc-row"><button class="toc-caret" type="button" aria-label="Expand subtasks">▸</button><a href="#phase4" data-track="phase4" class="toc-head"><span class="mk"></span>4 · Collaborative UI</a></div>
+        <div class="toc-sub"></div>
+      </div>
+      <div class="toc-group" data-group="phase5">
+        <div class="toc-row"><button class="toc-caret" type="button" aria-label="Expand subtasks">▸</button><a href="#phase5" data-track="phase5" class="toc-head"><span class="mk"></span>5 · Deploy &amp; observability</a></div>
+        <div class="toc-sub"></div>
+      </div>
+    </nav>
+    <div class="toc-label">Reference</div>
+    <nav class="toc">
+      <a href="#critical"><span class="mk" style="background:transparent"></span>Critical files</a>
+      <a href="#verify"><span class="mk" style="background:transparent"></span>Verification</a>
+      <a href="#deferred"><span class="mk" style="background:transparent"></span>Deferred</a>
+      <a href="#activity"><span class="mk" style="background:transparent"></span>Activity log</a>
+    </nav>
+
+    <div class="toc-label">View</div>
+    <div class="filterbar" id="filterbar">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="todo">To do</button>
+      <button data-filter="doing">Doing</button>
+      <button data-filter="done">Done</button>
+    </div>
+
+    <button class="theme-btn" id="theme-btn">◐ Toggle light / dark</button>
+    <button class="notify-btn" id="notify-btn">🔔 Notify me</button>
+  </aside>
+
+  <!-- ───────── Main ───────── -->
+  <main class="main">
+
+    <header class="hero">
+      <div class="eyebrow">Implementation Plan · Demo</div>
+      <h1>Realtime Collaborative Notes</h1>
+      <p>A self-hosted notes app where multiple people edit the same document live — conflict-free, offline-tolerant, and observable. This is a <strong>feature showcase</strong>: every component the plan template ships is used at least once below.</p>
+      <div class="chips">
+        <span class="chip">✦ <b>5</b> tracked phases</span>
+        <span class="chip">⚙ <b>CRDT</b> sync (Yjs)</span>
+        <span class="chip">◴ <b>~3 weeks</b></span>
+        <span class="chip">🗄 <b>Postgres</b> + Redis</span>
+        <span class="chip">📡 WebSocket transport</span>
+      </div>
+    </header>
+
+    <!-- Roadmap: one node per tracked section -->
+    <div class="roadmap" id="roadmap">
+      <a class="rm-node" href="#phase1" data-track="phase1"><div class="rm-num">1</div><div class="rm-label">Foundation</div></a>
+      <a class="rm-node" href="#phase2" data-track="phase2"><div class="rm-num">2</div><div class="rm-label">Auth</div></a>
+      <a class="rm-node" href="#phase3" data-track="phase3"><div class="rm-num">3</div><div class="rm-label">Sync engine</div></a>
+      <a class="rm-node" href="#phase4" data-track="phase4"><div class="rm-num">4</div><div class="rm-label">Collab UI</div></a>
+      <a class="rm-node" href="#phase5" data-track="phase5"><div class="rm-num">5</div><div class="rm-label">Deploy</div></a>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--border)"></i> To do</span>
+      <span><i style="background:var(--amber)"></i> In progress</span>
+      <span><i style="background:var(--green)"></i> Done</span>
+      <span style="color:var(--faint)">— status reflects implementation progress; roadmap &amp; sidebar mirror it</span>
+    </div>
+
+    <!-- ───────── Phase 1 — DONE, with steps + timestamps + schema diagram ───────── -->
+    <section id="phase1" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 1 · Foundation</div>
+          <h2>Foundation &amp; schema <span class="muted-tail">— project skeleton + data model</span></h2>
+        </div>
+        <button class="status" data-track="phase1">To do</button>
+      </div>
+      <p>Stand up the monorepo, the Postgres schema, and the migration tooling. Everything downstream binds to this data model, so it lands first.</p>
+
+      <h3>Build steps</h3>
+      <ol class="steps" data-steps="phase1">
+        <li><b>Scaffold the monorepo.</b> pnpm workspaces: <code>apps/server</code>, <code>apps/web</code>, <code>packages/shared</code>.</li>
+        <li><b>Provision Postgres + Redis.</b> Docker Compose for local dev; <code>.env</code> wiring.</li>
+        <li><b>Author the schema.</b> Prisma models for documents, updates, and presence.</li>
+        <li><b>Wire migrations.</b> <code>prisma migrate dev</code> + a seed script with one demo doc.</li>
+      </ol>
+
+      <div class="diagram">
+        <div class="dg-title">documents</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">id</span><span class="col-type">uuid pk</span><span class="col-note">gen_random_uuid()</span></div>
+          <div class="row"><span class="col-name">title</span><span class="col-type">text</span><span class="col-note">defaults to "Untitled"</span></div>
+          <div class="row"><span class="col-name">ydoc_state</span><span class="col-type">bytea</span><span class="col-note">encoded Yjs document snapshot</span></div>
+          <div class="row"><span class="col-name">owner_id</span><span class="col-type">uuid fk → users</span><span class="col-note">on delete cascade</span></div>
+          <div class="row"><span class="col-name">updated_at</span><span class="col-type">timestamptz</span><span class="col-note">touched on every merge</span></div>
+        </div>
+      </div>
+
+      <div class="callout ok"><strong>Acceptance:</strong> <code>pnpm migrate &amp;&amp; pnpm seed</code> runs clean and the demo document is queryable.</div>
+    </section>
+
+    <!-- ───────── Phase 2 — DONE, with flow diagram + table + timestamps ───────── -->
+    <section id="phase2" class="card phase" data-accent="blue">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 2 · Access</div>
+          <h2>Auth &amp; sessions <span class="muted-tail">— who can open which doc</span></h2>
+        </div>
+        <button class="status" data-track="phase2">To do</button>
+      </div>
+      <p>Email magic-link auth, signed session cookies, and a per-document access check that the WebSocket handshake reuses.</p>
+
+      <h3>Build steps</h3>
+      <ol class="steps" data-steps="phase2">
+        <li><b>Magic-link request.</b> Issue + sign a short-lived email token, rate-limited.</li>
+        <li><b>Session cookie.</b> Verify token, set httpOnly SameSite cookie.</li>
+        <li><b>Shared ACL guard.</b> One <code>canAccess()</code> for REST + socket upgrade.</li>
+      </ol>
+
+      <div class="diagram">
+        <div class="dg-title">Request → authenticated socket</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>Magic link</b><small>POST /auth/email</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>Verify token</b><small>signed, 15-min TTL</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>Session cookie</b><small>httpOnly · SameSite</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node ans"><b>WS upgrade OK</b><small>doc ACL checked</small></div></div>
+        </div>
+      </div>
+
+      <table>
+        <thead><tr><th>Endpoint</th><th>Method</th><th>Guard</th></tr></thead>
+        <tbody>
+          <tr><td>/auth/email</td><td>POST</td><td>rate-limited, 5/min/IP</td></tr>
+          <tr><td>/auth/verify</td><td>GET</td><td>token signature + TTL</td></tr>
+          <tr><td>/Plans/:id/ws</td><td>UPGRADE</td><td>session + document ACL</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout"><strong>Note:</strong> the same <code>canAccess(userId, docId)</code> helper guards both the REST routes and the socket upgrade — one source of truth.</div>
+    </section>
+
+    <!-- ───────── Phase 3 — DOING, with steps (partial), compare, flow, waiting banner ───────── -->
+    <section id="phase3" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 3 · Core</div>
+          <h2>Realtime sync engine <span class="muted-tail">— the hard part</span></h2>
+        </div>
+        <button class="status" data-track="phase3">To do</button>
+      </div>
+      <p>A CRDT-based sync server that fans out document updates to every connected client and periodically persists snapshots. This is the phase currently in progress.</p>
+
+      <h3>Build steps</h3>
+      <ol class="steps" data-steps="phase3">
+        <li><b>WebSocket room manager.</b> One in-memory room per doc, keyed by id.</li>
+        <li><b>Yjs update relay.</b> Broadcast binary updates to all peers in the room.</li>
+        <li><b>Debounced persistence.</b> Flush the merged Y.Doc to <code>ydoc_state</code> every 2s of quiet.</li>
+        <li><b>Presence &amp; awareness.</b> Cursors, selections, who's-online.</li>
+        <li><b>Reconnection &amp; offline replay.</b> Buffer local updates, replay on reconnect.</li>
+      </ol>
+
+      <h3>Transport decision</h3>
+      <div class="compare">
+        <div class="bad"><div class="ct">Polling</div><ul><li>Simple to build</li><li>High latency (1–3s)</li><li>Wasteful at idle</li></ul></div>
+        <div class="bad"><div class="ct">SSE</div><ul><li>Server→client only</li><li>Needs a 2nd channel for writes</li></ul></div>
+        <div class="pick"><div class="ct">WebSocket ✓ chosen</div><ul><li>Full duplex, low latency</li><li>Binary frames fit Yjs</li><li>Survives behind our LB</li></ul></div>
+      </div>
+
+      <div class="diagram">
+        <div class="dg-title">Edit → all peers (current focus)</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>Client A types</b><small>Y.Doc update</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>Room relay</b><small>in-memory fanout</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col">
+            <div class="node ans"><b>Client B</b><small>applies update</small></div>
+            <div class="node ans"><b>Client C</b><small>applies update</small></div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>Snapshot</b><small>debounced → Postgres</small></div></div>
+        </div>
+      </div>
+
+      <div class="callout warn"><strong>Open risk:</strong> snapshot cadence vs. write amplification. Demoing the <em>waiting-for-input</em> banner — see the pinned bar at the top of the page.</div>
+    </section>
+
+    <!-- ───────── Phase 4 — TODO, with tree diagram ───────── -->
+    <section id="phase4" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 4 · Frontend</div>
+          <h2>Collaborative UI <span class="muted-tail">— the editor surface</span></h2>
+        </div>
+        <button class="status" data-track="phase4">To do</button>
+      </div>
+      <p>A TipTap/ProseMirror editor bound to the shared Y.Doc, remote cursors with name labels, and a presence avatar stack.</p>
+
+      <h3>Build steps</h3>
+      <ol class="steps" data-steps="phase4">
+        <li><b>Bind editor to Y.Doc.</b> TipTap + y-prosemirror two-way binding.</li>
+        <li><b>Remote cursors.</b> Render awareness state as labelled overlays.</li>
+        <li><b>Presence avatars.</b> Who's-online stack in the toolbar.</li>
+      </ol>
+
+      <div class="diagram">
+        <div class="dg-title">apps/web layout</div>
+        <div class="tree"><span class="dir">apps/web/src/</span>
+├─ <span class="dir">editor/</span>
+│  ├─ <span class="nm">Editor.tsx</span>        <small>TipTap + y-prosemirror binding</small>
+│  ├─ <span class="nm">RemoteCursors.tsx</span> <small>awareness → cursor overlays</small>
+│  └─ <span class="nm">Toolbar.tsx</span>       <small>bold / italic / headings</small>
+├─ <span class="dir">presence/</span>
+│  └─ <span class="nm">AvatarStack.tsx</span>   <small>who's online</small>
+├─ <span class="nm">useYDoc.ts</span>          <small>provider + WS connection hook</small>
+└─ <span class="nm">App.tsx</span></div>
+      </div>
+
+      <div class="callout"><strong>Depends on:</strong> Phase 3's awareness protocol must be stable before remote cursors can render.</div>
+    </section>
+
+    <!-- ───────── Phase 5 — TODO, with table + ok callout ───────── -->
+    <section id="phase5" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 5 · Operations</div>
+          <h2>Deploy &amp; observability <span class="muted-tail">— ship it, watch it</span></h2>
+        </div>
+        <button class="status" data-track="phase5">To do</button>
+      </div>
+      <p>Containerize, deploy behind a sticky-session load balancer, and wire metrics so we can see room counts, latency, and snapshot lag in production.</p>
+
+      <h3>Build steps</h3>
+      <ol class="steps" data-steps="phase5">
+        <li><b>Containerize.</b> Dockerfile + <code>/ready</code> health check.</li>
+        <li><b>Sticky sessions.</b> LB cookie so a peer stays on one node.</li>
+        <li><b>Dashboards.</b> Prometheus metrics + Grafana panels.</li>
+      </ol>
+
+      <table>
+        <thead><tr><th>Concern</th><th>Tool</th><th>Signal</th></tr></thead>
+        <tbody>
+          <tr><td>Container</td><td>Docker + Fly.io</td><td>health check on /ready</td></tr>
+          <tr><td>Sessions</td><td>LB sticky cookie</td><td>peer stays on one node</td></tr>
+          <tr><td>Metrics</td><td>Prometheus + Grafana</td><td>active_rooms, ws_latency_ms</td></tr>
+          <tr><td>Errors</td><td>Sentry</td><td>unhandled relay exceptions</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout ok"><strong>Done when:</strong> two browsers on the deployed URL edit the same doc live, and Grafana shows the room + latency metrics.</div>
+    </section>
+
+    <!-- ───────── Reference: critical files (tree) ───────── -->
+    <section id="critical" class="card plain">
+      <div class="sec-kicker">Map</div>
+      <h2>Critical files</h2>
+      <div class="diagram">
+        <div class="dg-title">where the work lives</div>
+        <div class="tree"><span class="dir">apps/server/src/</span>
+├─ <span class="nm">rooms.ts</span>         <small>★ Phase 3 — in-memory fanout</small>
+├─ <span class="nm">persistence.ts</span>   <small>★ Phase 3 — debounced snapshots</small>
+├─ <span class="nm">auth.ts</span>          <small>Phase 2 — magic link + ACL</small>
+└─ <span class="dir">db/</span>
+   └─ <span class="nm">schema.prisma</span> <small>Phase 1 — data model</small></div>
+      </div>
+    </section>
+
+    <!-- ───────── Reference: verification ───────── -->
+    <section id="verify" class="card plain">
+      <div class="sec-kicker">Proof</div>
+      <h2>Verification</h2>
+      <ul>
+        <li><code>pnpm test</code> — unit suite for CRDT merge + ACL logic.</li>
+        <li><code>pnpm e2e</code> — Playwright drives two browser contexts editing one doc; asserts convergence.</li>
+        <li>Manual: kill a server node mid-edit; client reconnects and replays buffered updates with no lost characters.</li>
+        <li>Load: 50 simulated peers in one room hold &lt; 150&nbsp;ms broadcast latency.</li>
+      </ul>
+    </section>
+
+    <!-- ───────── Reference: deferred ───────── -->
+    <section id="deferred" class="card plain">
+      <div class="sec-kicker">Later</div>
+      <h2>Deferred <span class="pill defer">out of scope v1</span></h2>
+      <ul>
+        <li>Rich comments / suggestion mode.</li>
+        <li>Document version history &amp; restore.</li>
+        <li>Mobile native clients (web-responsive only for v1).</li>
+        <li>End-to-end encryption of document state.</li>
+      </ul>
+    </section>
+
+    <!-- Activity log — auto-rendered from #plan-state `log`; self-hides when empty. -->
+    <section id="activity" class="card plain">
+      <div class="sec-kicker">Timeline</div>
+      <h2>Activity log</h2>
+    </section>
+
+    <footer>Realtime Collaborative Notes — Build Plan · demo of the html-plan template</footer>
+
+  </main>
+</div>
+
+<!-- ───────── Progress state — the SINGLE source of truth ───────── -->
+<script id="plan-state" type="application/json">
+{
+  "status": { "phase1": "done", "phase2": "done", "phase3": "doing", "phase4": "todo", "phase5": "todo" },
+  "steps":  { "phase1": 4, "phase2": 3, "phase3": 2 },
+  "times":  {
+    "phase1": { "start": "Mon 09:10", "end": "Mon 14:30" },
+    "phase2": { "start": "Tue 10:00", "end": "Wed 12:15" },
+    "phase3": { "start": "Wed 13:00" }
+  },
+  "waiting": { "question": "Snapshot every 2s, or on idle-only? Affects write volume.", "section": "phase3" },
+  "log": [
+    { "t": "Mon 14:30", "text": "Phase 1 done — schema migrated, demo doc seeded." },
+    { "t": "Wed 12:15", "text": "Phase 2 done — magic-link auth + socket ACL live." },
+    { "t": "Wed 13:00", "text": "Phase 3 started — room manager + relay landed." },
+    { "t": "Thu 09:40", "text": "Blocked: need a call on snapshot cadence (see banner)." }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  // ── Config ──
+  var TKEY = 'realtime-notes-theme';     // localStorage: theme preference
+  var SKEY = 'realtime-notes-scroll';    // sessionStorage: scroll Y across reload
+  var ids = ['phase1', 'phase2', 'phase3', 'phase4', 'phase5']; // EXACTLY the tracked section ids
+  var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
+  var RELOAD_MS = 4000;
+
+  // ── Read embedded state — the SINGLE source of truth (Claude edits #plan-state) ──
+  var emb = null;
+  try { var rawEl = document.getElementById('plan-state'); if (rawEl) emb = JSON.parse(rawEl.textContent); }
+  catch (e) { emb = null; }
+  var status  = (emb && emb.status && typeof emb.status === 'object') ? emb.status : {};
+  function st(id) { return status[id] || 'todo'; }
+  function allDone() { return !!ids.length && ids.filter(function (id) { return st(id) === 'done'; }).length >= ids.length; }
+
+  // ── Render pills / roadmap / ring from embedded state ──
+  [].slice.call(document.querySelectorAll('[data-track]')).forEach(function (el) {
+    var s = st(el.dataset.track);
+    el.setAttribute('data-st', s);
+    if (el.classList.contains('status')) { el.dataset.state = s; el.textContent = labels[s]; }
+  });
+  (function () {
+    var done = ids.filter(function (id) { return st(id) === 'done'; }).length;
+    var pct = ids.length ? Math.round(done / ids.length * 100) : 0;
+    var ring = document.getElementById('ring'); if (ring) ring.style.setProperty('--pct', pct);
+    var rp = document.getElementById('ring-pct'); if (rp) rp.textContent = pct + '%';
+    var rc = document.getElementById('ring-count'); if (rc) rc.textContent = done + ' / ' + ids.length;
+  })();
+
+  // ── "Waiting for your input" banner ──
+  (function () {
+    var bar = document.getElementById('await-bar'); if (!bar) return;
+    var w = emb && emb.waiting;
+    var q = w ? (typeof w === 'string' ? w : w.question) : null;
+    if (!q) return;
+    var txt = document.getElementById('await-text'); if (txt) txt.textContent = '— ' + q;
+    bar.classList.add('on');
+    document.title = '⏳ ' + document.title.replace(/^⏳\s*/, '');
+    var sec = (typeof w === 'object' && w) ? w.section : null;
+    if (sec && document.getElementById(sec)) {
+      bar.classList.add('clickable');
+      bar.onclick = function () { _focusSection(sec); };
+    }
+  })();
+
+  // ── Granular progress: sub-task checklists, per-phase timestamps, activity log ──
+  (function () {
+    var steps = (emb && emb.steps && typeof emb.steps === 'object') ? emb.steps : {};
+    var times = (emb && emb.times && typeof emb.times === 'object') ? emb.times : {};
+
+    var STEPKEY = TKEY.replace('-theme', '-stepseen');
+    var stepSeen = {}; try { stepSeen = JSON.parse(sessionStorage.getItem(STEPKEY) || '{}') || {}; } catch (e) {}
+    var stepSeenNow = {};
+    [].slice.call(document.querySelectorAll('[data-steps]')).forEach(function (list) {
+      var id = list.getAttribute('data-steps');
+      var items = [].filter.call(list.children, function (n) { return n.tagName === 'LI'; });
+      var total = items.length; if (!total) return;
+      var spec = steps[id], done = {};
+      if (typeof spec === 'number') { for (var i = 0; i < spec && i < total; i++) done[i] = 1; }
+      else if (Array.isArray(spec)) { spec.forEach(function (i) { done[i] = 1; }); }
+      var doneN = 0;
+      items.forEach(function (li, i) {
+        if (!done[i]) return;
+        doneN++;
+        if (!li.querySelector('.step-check')) {
+          var c = document.createElement('span'); c.className = 'step-check'; c.textContent = '✓';
+          li.insertBefore(c, li.firstChild);
+        }
+        li.classList.add('step-done');
+      });
+      if (spec == null) return;
+      var section = list.closest('section'); if (!section) return;
+      var head = section.querySelector('.sec-head'); if (!head || section.querySelector('.subprog')) return;
+      var pct = Math.round(doneN / total * 100);
+      var wrap = document.createElement('div'); wrap.className = 'subprog';
+      wrap.innerHTML = '<span class="subbar"><i></i></span><span class="subcount">' + doneN + ' / ' + total + ' steps</span>';
+      head.parentNode.insertBefore(wrap, head.nextSibling);
+      var iEl = wrap.querySelector('i');
+      stepSeenNow[id] = doneN;
+      if (stepSeen[id] === doneN) { iEl.style.transition = 'none'; iEl.style.width = pct + '%'; }
+      else { (function (el, p) { requestAnimationFrame(function () { el.style.width = p + '%'; }); })(iEl, pct); }
+    });
+    try { sessionStorage.setItem(STEPKEY, JSON.stringify(stepSeenNow)); } catch (e) {}
+
+    Object.keys(times).forEach(function (id) {
+      var t = times[id]; if (!t) return;
+      var section = document.getElementById(id); if (!section) return;
+      var head = section.querySelector('.sec-head'); if (!head || section.querySelector('.ts-line')) return;
+      var parts = [];
+      if (t.start) parts.push('started <b>' + t.start + '</b>');
+      if (t.end) parts.push('done <b>' + t.end + '</b>');
+      if (!parts.length) return;
+      var line = document.createElement('div'); line.className = 'ts-line'; line.innerHTML = parts.join(' · ');
+      var anchor = section.querySelector('.subprog') || head;
+      anchor.parentNode.insertBefore(line, anchor.nextSibling);
+    });
+
+    var log = (emb && Array.isArray(emb.log)) ? emb.log : [];
+    var actSec = document.getElementById('activity');
+    var actLink = document.querySelector('nav.toc a[href="#activity"]');
+    if (actSec) {
+      if (log.length) {
+        var ul = actSec.querySelector('.timeline');
+        if (!ul) { ul = document.createElement('ul'); ul.className = 'timeline'; actSec.appendChild(ul); }
+        ul.innerHTML = '';
+        log.forEach(function (e) {
+          var li = document.createElement('li');
+          li.innerHTML = (e && e.t ? '<span class="tl-t">' + e.t + '</span>' : '') + (e && e.text ? '<span class="tl-x">' + e.text + '</span>' : '');
+          ul.appendChild(li);
+        });
+        actSec.style.display = ''; if (actLink) actLink.style.display = '';
+      } else {
+        actSec.style.display = 'none'; if (actLink) actLink.style.display = 'none';
+      }
+    }
+  })();
+
+  // ── Notify when needed ──
+  (function () {
+    var NKEY = TKEY.replace('-theme', '-notify');
+    var SIGKEY = TKEY.replace('-theme', '-notifsig');
+    var btn = document.getElementById('notify-btn');
+    var supported = ('Notification' in window);
+
+    function enabled() { try { return localStorage.getItem(NKEY) === '1'; } catch (e) { return false; } }
+    function paint() {
+      if (!btn) return;
+      btn.classList.remove('on', 'blocked'); btn.disabled = false;
+      if (!supported) { btn.textContent = '🔔 Notifications n/a'; btn.disabled = true; return; }
+      if (enabled() && Notification.permission === 'granted') { btn.classList.add('on'); btn.textContent = '🔔 Notifications on'; }
+      else if (Notification.permission === 'denied') { btn.classList.add('blocked'); btn.textContent = '🔕 Blocked by browser'; }
+      else { btn.textContent = '🔔 Notify me'; }
+    }
+    function chime() {
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+        var ctx = new AC();
+        [880, 1175].forEach(function (f, i) {
+          var o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+          var t = ctx.currentTime + i * 0.16;
+          g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.18, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          o.start(t); o.stop(t + 0.24);
+        });
+        setTimeout(function () { try { ctx.close(); } catch (e) {} }, 800);
+      } catch (e) {}
+    }
+    paint();
+    if (btn && supported) btn.addEventListener('click', function () {
+      if (Notification.permission === 'granted') {
+        try { localStorage.setItem(NKEY, enabled() ? '0' : '1'); } catch (e) {}
+        paint(); if (enabled()) chime();
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(function (p) {
+          try { localStorage.setItem(NKEY, p === 'granted' ? '1' : '0'); } catch (e) {}
+          paint(); if (p === 'granted') chime();
+        });
+      } else { paint(); }
+    });
+
+    if (!supported || !enabled() || Notification.permission !== 'granted') return;
+
+    var doneNow = allDone();
+    var wq = (function () { var w = emb && emb.waiting; return w ? (typeof w === 'string' ? w : w.question) : null; })();
+    var prevSig = {}; try { prevSig = JSON.parse(sessionStorage.getItem(SIGKEY) || '{}') || {}; } catch (e) {}
+    var title = (document.title || 'Plan').replace(/^⏳\s*/, '');
+    if (wq && wq !== prevSig.waiting) {
+      try { new Notification('⏳ ' + title + ' — waiting for your input', { body: wq }); } catch (e) {}
+      chime();
+    } else if (doneNow && !prevSig.done) {
+      try { new Notification('✅ ' + title + ' — plan complete', { body: 'All sections done.' }); } catch (e) {}
+      chime();
+    }
+    try { sessionStorage.setItem(SIGKEY, JSON.stringify({ waiting: wq || null, done: !!doneNow })); } catch (e) {}
+  })();
+
+  // ── Theatrical animations ──
+  (function () {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var SEENKEY = TKEY.replace('-theme', '-seen');
+    var ENTERKEY = TKEY.replace('-theme', '-entered');
+
+    var prev = null;
+    try { var raw = sessionStorage.getItem(SEENKEY); if (raw) prev = JSON.parse(raw); } catch (e) {}
+    var cur = {}; ids.forEach(function (id) { cur[id] = st(id); });
+    try { sessionStorage.setItem(SEENKEY, JSON.stringify(cur)); } catch (e) {}
+    var firstEver = !prev;
+
+    var entered = false; try { entered = sessionStorage.getItem(ENTERKEY) === '1'; } catch (e) {}
+    if (!entered) {
+      try { sessionStorage.setItem(ENTERKEY, '1'); } catch (e) {}
+      [].slice.call(document.querySelectorAll('.main > .hero, .main > .roadmap, .main > .card')).forEach(function (c, i) {
+        c.style.animation = 'plan-rise .5s cubic-bezier(.2,.7,.2,1) both';
+        c.style.animationDelay = (i * 55) + 'ms';
+      });
+    }
+
+    var ring = document.getElementById('ring'), rp = document.getElementById('ring-pct');
+    function pctOf(map) { var d = ids.filter(function (id) { return map[id] === 'done'; }).length; return ids.length ? Math.round(d / ids.length * 100) : 0; }
+    var pctNow = pctOf(cur), pctPrev = firstEver ? 0 : pctOf(prev);
+    if (ring && pctNow !== pctPrev) {
+      ring.classList.add('surge'); setTimeout(function () { ring.classList.remove('surge'); }, 1000);
+      var t0 = null;
+      requestAnimationFrame(function step(ts) {
+        if (t0 === null) t0 = ts;
+        var k = Math.min(1, (ts - t0) / 900), e = 1 - Math.pow(1 - k, 3);
+        var v = Math.round(pctPrev + (pctNow - pctPrev) * e);
+        ring.style.setProperty('--pct', v); if (rp) rp.textContent = v + '%';
+        if (k < 1) requestAnimationFrame(step);
+      });
+    }
+
+    var CF = (function () {
+      var cv, ctx, P = [], raf = null;
+      var cols = ['#45c463', '#56b6ff', '#8b7bff', '#34d3c4', '#e0a93b', '#ff5d8f'];
+      function ensure() { if (!cv) { cv = document.createElement('canvas'); cv.className = 'confetti-cv'; document.body.appendChild(cv); ctx = cv.getContext('2d'); } cv.width = innerWidth; cv.height = innerHeight; }
+      function loop() {
+        ctx.clearRect(0, 0, cv.width, cv.height); var alive = false;
+        for (var i = 0; i < P.length; i++) { var p = P[i]; if (p.life <= 0) continue; alive = true;
+          p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 0.012;
+          ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore(); }
+        if (alive) raf = requestAnimationFrame(loop); else { ctx.clearRect(0, 0, cv.width, cv.height); raf = null; P = []; }
+      }
+      return function (cx, cy, n) {
+        ensure();
+        for (var i = 0; i < n; i++) { var a = Math.random() * Math.PI * 2, sp = 4 + Math.random() * 7;
+          P.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 4, g: 0.18 + Math.random() * 0.12, s: 4 + Math.random() * 5, c: cols[(Math.random() * cols.length) | 0], rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.4, life: 1 }); }
+        if (!raf) raf = requestAnimationFrame(loop);
+      };
+    })();
+    function burstAt(el) { var r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 3, width: 0, height: 0 }; CF(r.left + r.width / 2, r.top + r.height / 2, 40); }
+
+    if (!firstEver) {
+      ids.forEach(function (id) {
+        if (cur[id] === prev[id]) return;
+        [].slice.call(document.querySelectorAll('[data-track="' + id + '"]')).forEach(function (el) {
+          el.classList.add(cur[id] === 'done' ? 'celebrate-done' : 'celebrate-doing');
+        });
+        if (cur[id] === 'done') burstAt(document.querySelector('.rm-node[data-track="' + id + '"]'));
+      });
+      if (pctNow === 100 && pctPrev < 100) CF(innerWidth / 2, innerHeight * 0.28, 150);
+    }
+
+    ids.forEach(function (id) {
+      if (cur[id] === 'doing') [].slice.call(document.querySelectorAll('[data-track="' + id + '"]')).forEach(function (el) { el.classList.add('is-breathing'); });
+    });
+
+  })();
+
+  // ── Navigation: collapsible phases, status filter, keyboard jump ──
+  var KCOLLAPSE = TKEY.replace('-theme', '-collapsed');
+  var KFILTER = TKEY.replace('-theme', '-filter');
+
+  (function () {
+    var collapsed = {};
+    try { (JSON.parse(localStorage.getItem(KCOLLAPSE) || '[]') || []).forEach(function (id) { collapsed[id] = 1; }); } catch (e) {}
+    function save() { try { localStorage.setItem(KCOLLAPSE, JSON.stringify(Object.keys(collapsed))); } catch (e) {} }
+    [].slice.call(document.querySelectorAll('section.card.phase')).forEach(function (sec) {
+      var head = sec.querySelector('.sec-head'); if (!head) return;
+      var chev = document.createElement('button');
+      chev.className = 'chev'; chev.type = 'button'; chev.setAttribute('aria-label', 'Collapse or expand section'); chev.textContent = '▾';
+      head.insertBefore(chev, head.firstChild);
+      if (collapsed[sec.id]) sec.classList.add('collapsed');
+      chev.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        sec.classList.toggle('collapsed');
+        if (sec.classList.contains('collapsed')) collapsed[sec.id] = 1; else delete collapsed[sec.id];
+        save();
+      });
+    });
+  })();
+
+  // Sidebar subtasks — nested, collapsible step lists under each phase, built from each
+  // phase's existing [data-steps] list (single source of truth). Default: the in-progress
+  // phase is expanded, others collapsed; the user's explicit toggles persist and win.
+  (function () {
+    var KSUB = TKEY.replace('-theme', '-subopen');
+    var explicit = {}; try { explicit = JSON.parse(localStorage.getItem(KSUB) || '{}') || {}; } catch (e) {}
+    function save() { try { localStorage.setItem(KSUB, JSON.stringify(explicit)); } catch (e) {} }
+    var stepsState = (emb && emb.steps && typeof emb.steps === 'object') ? emb.steps : {};
+
+    ids.forEach(function (id) {
+      var grp = document.querySelector('.toc-group[data-group="' + id + '"]'); if (!grp) return;
+      var sub = grp.querySelector('.toc-sub'), caret = grp.querySelector('.toc-caret');
+      var list = document.querySelector('[data-steps="' + id + '"]');
+      var items = list ? [].filter.call(list.children, function (n) { return n.tagName === 'LI'; }) : [];
+
+      if (!items.length) { if (caret) caret.classList.add('empty'); if (sub) sub.innerHTML = ''; return; }
+
+      var spec = stepsState[id], done = {};
+      if (typeof spec === 'number') { for (var k = 0; k < spec; k++) done[k] = 1; }
+      else if (Array.isArray(spec)) spec.forEach(function (k) { done[k] = 1; });
+
+      sub.innerHTML = '';
+      items.forEach(function (li, i) {
+        var b = li.querySelector('b');
+        var label = (b ? b.textContent : li.textContent).replace(/\.\s*$/, '').trim();
+        var a = document.createElement('a');
+        a.href = '#' + id; a.className = 'toc-subitem';
+        a.innerHTML = (done[i] ? '<span class="schk">✓</span>' : '<span class="sdot"></span>') + '<span class="slab"></span>';
+        a.querySelector('.slab').textContent = label;
+        if (done[i]) a.classList.add('sub-done');
+        sub.appendChild(a);
+      });
+
+      var open = (id in explicit) ? !!explicit[id] : (st(id) === 'doing');
+      grp.classList.toggle('open', open);
+      if (caret) caret.addEventListener('click', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        var nowOpen = !grp.classList.contains('open');
+        grp.classList.toggle('open', nowOpen);
+        explicit[id] = nowOpen; save();
+      });
+    });
+  })();
+
+  (function () {
+    var bar = document.getElementById('filterbar'); if (!bar) return;
+    var cur = 'all'; try { cur = sessionStorage.getItem(KFILTER) || 'all'; } catch (e) {}
+    function apply(f) {
+      ids.forEach(function (id) {
+        var sec = document.getElementById(id); if (sec) sec.style.display = (f === 'all' || st(id) === f) ? '' : 'none';
+      });
+      [].slice.call(bar.querySelectorAll('button')).forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-filter') === f); });
+    }
+    [].slice.call(bar.querySelectorAll('button')).forEach(function (b) {
+      b.addEventListener('click', function () { cur = b.getAttribute('data-filter'); try { sessionStorage.setItem(KFILTER, cur); } catch (e) {} apply(cur); });
+    });
+    apply(cur);
+  })();
+
+  (function () {
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target && e.target.tagName) || '';
+      if (e.metaKey || e.ctrlKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'g') { window.scrollTo({ top: 0, behavior: _reduce ? 'auto' : 'smooth' }); return; }
+      if (e.key !== 'j' && e.key !== 'k') return;
+      var secs = [].filter.call(document.querySelectorAll('main.main section[id]'), function (s) { return s.offsetParent !== null; });
+      if (!secs.length) return;
+      var y = window.scrollY + 80, idx = -1;
+      for (var i = 0; i < secs.length; i++) { if (secs[i].offsetTop <= y) idx = i; }
+      var next = e.key === 'j' ? Math.min(secs.length - 1, idx + 1) : Math.max(0, idx - 1);
+      _focusSection(secs[next].id);
+    });
+  })();
+
+  // ── Scroll-spy ──
+  var links = {};
+  document.querySelectorAll('nav.toc a[href^="#"]:not(.toc-subitem)').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+  var spy = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) {
+        Object.values(links).forEach(function (a) { a.classList.remove('active'); });
+        var a = links[en.target.id]; if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+  document.querySelectorAll('section[id]').forEach(function (s) { spy.observe(s); });
+
+  // ── Theme toggle ──
+  var html = document.documentElement;
+  var themeBtn = document.getElementById('theme-btn');
+  if (themeBtn) themeBtn.addEventListener('click', function () {
+    html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem(TKEY, html.dataset.theme); } catch (e) {}
+  });
+
+  // ── Futuristic background: drifting starfield ──
+  (function () {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var cv = document.getElementById('stars'); if (!cv) return;
+    var ctx = cv.getContext('2d'), stars = [], W, H;
+    var cols = ['#cfe0ff', '#cfe0ff', '#cfe0ff', '#8b7bff', '#34d3c4'];
+    function resize() {
+      W = cv.width = innerWidth; H = cv.height = innerHeight;
+      var n = Math.min(170, Math.round(W * H / 13000)); stars = [];
+      for (var i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, z: Math.random() * 0.8 + 0.2, r: Math.random() * 1.3 + 0.3, tw: Math.random() * 6.28 });
+    }
+    resize(); addEventListener('resize', resize);
+    (function draw() {
+      ctx.clearRect(0, 0, W, H);
+      for (var i = 0; i < stars.length; i++) { var s = stars[i];
+        s.y += s.z * 0.16; s.tw += 0.02; if (s.y > H + 2) { s.y = -2; s.x = Math.random() * W; }
+        ctx.globalAlpha = (0.35 + 0.45 * Math.sin(s.tw)) * s.z;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fillStyle = cols[i % cols.length]; ctx.fill();
+      }
+      ctx.globalAlpha = 1; requestAnimationFrame(draw);
+    })();
+  })();
+
+  // ── Cursor spotlight ──
+  (function () {
+    var sp = document.querySelector('.spotlight'); if (!sp) return;
+    if (window.matchMedia && matchMedia('(pointer: coarse)').matches) return;
+    addEventListener('mousemove', function (e) {
+      sp.style.setProperty('--mx', e.clientX + 'px');
+      sp.style.setProperty('--my', e.clientY + 'px');
+      sp.classList.add('on');
+    }, { passive: true });
+  })();
+
+  // ── Auto-refresh + auto-focus on the in-progress section ──
+  if ('scrollRestoration' in history) { try { history.scrollRestoration = 'manual'; } catch (e) {} }
+  var _reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function _firstDoing() { for (var i = 0; i < ids.length; i++) if (st(ids[i]) === 'doing') return ids[i]; return null; }
+  function _instantTo(y) {
+    var r = document.documentElement, sb = r.style.scrollBehavior;
+    r.style.scrollBehavior = 'auto'; window.scrollTo(0, y || 0); r.style.scrollBehavior = sb;
+  }
+  function _focusSection(id) {
+    var el = id && document.getElementById(id); if (!el) return;
+    el.scrollIntoView({ behavior: _reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+  (function () {
+    var FKEY = TKEY.replace('-theme', '-focusid');
+    var curFocus = _firstDoing();
+    var lastFocus = null; try { lastFocus = sessionStorage.getItem(FKEY); } catch (e) {}
+    var savedY = null; try { savedY = sessionStorage.getItem(SKEY); } catch (e) {}
+    try { sessionStorage.removeItem(SKEY); } catch (e) {}
+    var firstOpen = (savedY === null);
+
+    if (curFocus && curFocus !== lastFocus) {
+      try { sessionStorage.setItem(FKEY, curFocus); } catch (e) {}
+      setTimeout(function () { _focusSection(curFocus); }, firstOpen ? 600 : 0);
+    } else {
+      if (!curFocus) { try { sessionStorage.removeItem(FKEY); } catch (e) {} }
+      if (!firstOpen) _instantTo(parseInt(savedY, 10) || 0);
+    }
+  })();
+  setInterval(function () {
+    try { sessionStorage.setItem(SKEY, String(window.scrollY || window.pageYOffset || 0)); } catch (e) {}
+    location.reload();
+  }, RELOAD_MS);
+})();
+</script>
+</body>
+</html>

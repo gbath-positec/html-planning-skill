@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habit Tracker</title>
+<style>
+  /* Light theme is the app default (chosen during planning). */
+  :root{ --bg:#f5f6f9; --card:#ffffff; --fg:#1a1e28; --muted:#5a6478; --accent:#1f7fd6; --line:#dde1e9; }
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+  #app{max-width:640px;margin:0 auto;padding:24px}
+  h1{font-size:24px;margin:0 0 2px}
+  header p{color:var(--muted);margin:0 0 16px}
+  .habit-list{list-style:none;padding:0;margin:16px 0}
+  .habit-row{display:flex;align-items:center;gap:12px;background:var(--card);padding:12px 16px;border-radius:10px;margin-bottom:8px;border:1px solid var(--line)}
+  .toggle{width:24px;height:24px;border-radius:50%;border:2px solid var(--muted);background:transparent;cursor:pointer;flex:none}
+  .toggle.on{background:var(--accent);border-color:var(--accent)}
+  .open{flex:1;cursor:pointer}
+  .streak{color:var(--muted);font-size:14px}
+  .muted{color:var(--muted)}
+  button{font:inherit;color:#fff;background:var(--accent);border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+  #add-form{background:var(--card);padding:16px;border-radius:10px;display:flex;flex-direction:column;gap:10px;border:1px solid var(--line)}
+  .picker{display:flex;gap:8px;flex-wrap:wrap}
+  .picker label{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .sw{display:inline-block;width:18px;height:18px;border-radius:50%}
+  input#h-name{font:inherit;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--bg);color:var(--fg)}
+  #cancel-add{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(15,1fr);gap:4px;margin:16px 0}
+  .cell{aspect-ratio:1;border-radius:3px;background:var(--card);cursor:pointer;border:1px solid var(--line)}
+  .manage{display:flex;gap:8px}
+  .danger{background:#d4456a}
+  #back{background:transparent;color:var(--accent);padding-left:0}
+  .reorder{display:flex;flex-direction:column}
+  .reorder button{padding:0 6px;background:transparent;color:var(--muted);font-size:10px;line-height:1.2}
+</style>
+</head><body>
+<div id="app"></div>
+<script>
+"use strict";
+// ---- dates ----
+function dateKey(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayKey(){ return dateKey(new Date()); }
+function keyForOffset(n){ const d=new Date(); d.setDate(d.getDate()-n); return dateKey(d); }
+function lastNDays(n){ const out=[]; for(let i=n-1;i>=0;i--) out.push(keyForOffset(i)); return out; }
+
+// ---- store ----
+const STORAGE_KEY = 'habit-tracker-v1';
+function defaultState(){ return {version:1, habits:[], completions:{}}; }
+function migrate(raw){
+  if(raw && raw.version===1 && Array.isArray(raw.habits) && raw.completions) return raw;
+  return defaultState();
+}
+const store = {
+  load(){ try { return migrate(JSON.parse(localStorage.getItem(STORAGE_KEY))); } catch(e){ return defaultState(); } },
+  save(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+};
+
+// ---- model (pure) ----
+function addHabit(state,{name,emoji='',color='#1f7fd6'}){
+  const order = state.habits.length;
+  const id = crypto.randomUUID();
+  const habit = {id, name, emoji, color, createdAt:new Date().toISOString(), order};
+  return {...state, habits:[...state.habits, habit], completions:{...state.completions,[id]:{}}};
+}
+function renameHabit(state,id,name){
+  return {...state, habits: state.habits.map(h=>h.id===id?{...h,name}:h)};
+}
+function deleteHabit(state,id){
+  const completions = {...state.completions}; delete completions[id];
+  return {...state, habits: state.habits.filter(h=>h.id!==id), completions};
+}
+function reorderHabit(state,id,direction){
+  const habits=[...state.habits]; const i=habits.findIndex(h=>h.id===id); const j=i+direction;
+  if(i<0||j<0||j>=habits.length) return state;
+  [habits[i],habits[j]]=[habits[j],habits[i]];
+  return {...state, habits: habits.map((h,idx)=>({...h,order:idx}))};
+}
+function isDone(state,id,key){ return !!(state.completions[id]&&state.completions[id][key]); }
+function toggleCompletion(state,id,key){
+  const cur = {...(state.completions[id]||{})};
+  if(cur[key]) delete cur[key]; else cur[key]=true;
+  return {...state, completions:{...state.completions,[id]:cur}};
+}
+
+// ---- streaks ----
+function streakCurrent(state,id){
+  const done = state.completions[id]||{};
+  // start at today if done, else yesterday; if neither, 0
+  let start = done[keyForOffset(0)] ? 0 : (done[keyForOffset(1)] ? 1 : null);
+  if(start===null) return 0;
+  let count=0, i=start;
+  while(done[keyForOffset(i)]){ count++; i++; }
+  return count;
+}
+function streakLongest(state,id){
+  const done = state.completions[id]||{};
+  let best=0, run=0;
+  for(let i=365;i>=0;i--){ if(done[keyForOffset(i)]){ run++; best=Math.max(best,run); } else { run=0; } }
+  return best;
+}
+
+// ---- app state + render ----
+let state = store.load();
+let currentView = {name:'today'};
+function setState(next){ state = next; store.save(state); renderApp(); }
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+let showAddForm = false;
+const EMOJI = ['✅','📖','🏃','🧘','💧','🛌','🎯','🎸'];
+const COLORS = ['#1f7fd6','#2e9e4a','#b9801b','#d4456a','#6b54e6'];
+
+function renderAddForm(){
+  return `<form id="add-form">
+    <input id="h-name" placeholder="Habit name" required autofocus>
+    <div class="picker">${EMOJI.map((e,i)=>`<label><input type="radio" name="emoji" value="${e}" ${i===0?'checked':''}>${e}</label>`).join('')}</div>
+    <div class="picker">${COLORS.map((c,i)=>`<label><input type="radio" name="color" value="${c}" ${i===0?'checked':''}><span class="sw" style="background:${c}"></span></label>`).join('')}</div>
+    <button type="submit">Add</button>
+    <button type="button" id="cancel-add">Cancel</button>
+  </form>`;
+}
+
+function addControl(){
+  return showAddForm ? renderAddForm() : `<button id="add-habit">+ Add habit</button>`;
+}
+
+function renderToday(){
+  const t = todayKey();
+  const sorted = [...state.habits].sort((a,b)=>a.order-b.order);
+  const doneCount = sorted.filter(h=>isDone(state,h.id,t)).length;
+  if(sorted.length===0){
+    return `<header><h1>Habits</h1><p>${t}</p></header>
+      <p class="muted">No habits yet.</p>
+      ${addControl()}`;
+  }
+  const rows = sorted.map(h=>{
+    const on = isDone(state,h.id,t);
+    return `
+    <li class="habit-row" data-id="${h.id}">
+      <button class="toggle ${on?'on':''}" data-action="toggle" data-id="${h.id}" aria-label="toggle"
+        style="${on?`background:${h.color};border-color:${h.color}`:''}"></button>
+      <span class="open" data-action="open" data-id="${h.id}">${esc(h.emoji)} ${esc(h.name)}</span>
+      <span class="streak">🔥 ${streakCurrent(state,h.id)}</span>
+      <span class="reorder">
+        <button data-action="up" data-id="${h.id}" aria-label="move up">▲</button>
+        <button data-action="down" data-id="${h.id}" aria-label="move down">▼</button>
+      </span>
+    </li>`;}).join('');
+  return `<header><h1>Habits</h1><p>${t} — ${doneCount} of ${sorted.length} done</p></header>
+    <ul class="habit-list">${rows}</ul>
+    ${addControl()}`;
+}
+
+function renderHistory(id){
+  const h = state.habits.find(x=>x.id===id);
+  if(!h){ currentView={name:'today'}; return renderToday(); }
+  const days = lastNDays(90);
+  const cells = days.map(k=>{
+    const on = isDone(state,id,k);
+    return `<span class="cell ${on?'on':''}" data-action="cellToggle" data-id="${id}" data-key="${k}"
+      title="${k}" style="${on?`background:${h.color}`:''}"></span>`;
+  }).join('');
+  return `<header>
+      <button id="back" data-action="back">← Back</button>
+      <h1>${esc(h.emoji)} ${esc(h.name)}</h1>
+      <p>🔥 ${streakCurrent(state,id)} current · 🏆 ${streakLongest(state,id)} longest</p>
+    </header>
+    <div class="grid">${cells}</div>
+    <div class="manage">
+      <button data-action="rename" data-id="${id}">Rename</button>
+      <button class="danger" data-action="delete" data-id="${id}">Delete</button>
+    </div>`;
+}
+
+function renderApp(){
+  const app = document.getElementById('app');
+  if(currentView.name==='today') app.innerHTML = renderToday();
+  else if(typeof renderHistory==='function') app.innerHTML = renderHistory(currentView.habitId);
+  else { currentView={name:'today'}; app.innerHTML = renderToday(); }
+}
+
+document.getElementById('app').addEventListener('click', e=>{
+  const action = e.target.dataset.action;
+  const id = e.target.dataset.id;
+  if(action==='toggle') setState(toggleCompletion(state, id, todayKey()));
+  else if(action==='open'){ currentView={name:'history',habitId:id}; renderApp(); }
+  else if(e.target.id==='add-habit'){ showAddForm=true; renderApp(); }
+  else if(e.target.id==='cancel-add'){ showAddForm=false; renderApp(); }
+  // setState calls renderApp (which reads currentView) — set view BEFORE setState
+  else if(action==='back'){ currentView={name:'today'}; renderApp(); }
+  else if(action==='cellToggle'){ currentView={name:'history',habitId:id}; setState(toggleCompletion(state, id, e.target.dataset.key)); }
+  else if(action==='rename'){ const n=prompt('New name?'); if(n){ currentView={name:'history',habitId:id}; setState(renameHabit(state,id,n.trim())); } }
+  else if(action==='delete'){ if(confirm('Delete this habit and its history?')){ currentView={name:'today'}; setState(deleteHabit(state,id)); } }
+  else if(action==='up') setState(reorderHabit(state, id, -1));
+  else if(action==='down') setState(reorderHabit(state, id, 1));
+});
+
+document.getElementById('app').addEventListener('submit', e=>{
+  if(e.target.id==='add-form'){
+    e.preventDefault();
+    const f=e.target;
+    const name=f.querySelector('#h-name').value.trim();
+    if(!name) return;
+    const emoji=f.querySelector('input[name=emoji]:checked').value;
+    const color=f.querySelector('input[name=color]:checked').value;
+    showAddForm=false;
+    setState(addHabit(state,{name,emoji,color}));
+  }
+});
+renderApp();
+</script>
+</body></html>
