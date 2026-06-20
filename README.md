@@ -1,15 +1,21 @@
 # rich-html-plans skill
 
-A Claude Code skill that turns any implementation or project plan into a polished,
-**self-contained HTML document** — sticky sidebar nav with scroll-spy, a phase
-roadmap, a live progress tracker, rich diagrams, and a light/dark toggle — then
-saves it to `Plans/` and opens it in Chrome — every plan collected in one
-dedicated Chrome window, kept separate from your normal browsing.
+A Claude Code skill that turns any plan into a **living document instead of a wall of
+text**. Ask Claude to "plan" something and you get a polished, self-contained HTML page —
+opened for you automatically — that you can actually *watch*: as Claude works, phases flip
+to green and the progress ring fills in real time, so you always know where things stand
+without reading a thing.
 
-It triggers automatically when you ask Claude to "plan", "make a plan", "write up
-the plan", or otherwise finalize a multi-phase plan.
+It's built to get out of your way. Every plan collects into one tidy place, you can launch
+the next step straight from the doc, and an optional **live dashboard — private to your
+devices over Tailscale — lets you check on every plan across every project from your phone.**
+No build step, no dependencies, no clutter in your normal browser.
 
 ![A plan rendered by the skill — roadmap, progress ring, and phase cards](screenshots/02-roadmap-progress.png)
+
+…and every plan across every project, live on your phone via the optional Tailscale dashboard:
+
+![The live dashboard — newest-first plan cards with progress rings, a LIVE indicator, per-card Archive button, and a "Show archived" toggle](screenshots/09-dashboard.png)
 
 ---
 
@@ -102,6 +108,15 @@ done, what's in progress, and any pending question — by reading the plan's sta
 and feeding it in as context. It's read-only and stays silent once the plan is
 100% done, so finished work never nags unrelated sessions.
 
+### 📱 A live dashboard of all your plans
+An optional, off-by-default add-on aggregates **every plan across all your projects** into
+**one live link** — a tiny zero-dependency Node server on your PC, exposed privately over
+Tailscale — so you can browse newest-first plan cards, with progress rings and a per-card
+archive toggle, right from your phone. Status is read live from the plan files, so it's never
+stale. Setup is one command; skip it and nothing changes. ([setup below](#optional-a-live-dashboard-of-all-your-plans-phone-friendly))
+
+![The live dashboard — newest-first plan cards with progress rings, a LIVE indicator, per-card Archive button, and a "Show archived" toggle](screenshots/09-dashboard.png)
+
 ---
 
 ## What's in this package
@@ -138,17 +153,27 @@ Copy the `rich-html-plans/` folder into your user skills directory:
 | **Windows** | `C:\Users\<you>\.claude\skills\rich-html-plans\` |
 | **macOS / Linux** | `~/.claude/skills/rich-html-plans/` |
 
-PowerShell (Windows):
+PowerShell (Windows) — safe to re-run to update:
 
 ```powershell
-Copy-Item -Recurse -Force .\rich-html-plans "$env:USERPROFILE\.claude\skills\rich-html-plans"
+$dest = "$env:USERPROFILE\.claude\skills\rich-html-plans"
+New-Item -ItemType Directory -Force (Split-Path $dest) | Out-Null
+Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
+Copy-Item -Recurse -Force .\rich-html-plans $dest
 ```
 
-bash (macOS / Linux):
+bash (macOS / Linux) — safe to re-run to update:
 
 ```bash
-mkdir -p ~/.claude/skills && cp -R ./rich-html-plans ~/.claude/skills/rich-html-plans
+mkdir -p ~/.claude/skills
+rm -rf ~/.claude/skills/rich-html-plans
+cp -R ./rich-html-plans ~/.claude/skills/rich-html-plans
 ```
+
+> **Don't** copy with a bare `Copy-Item -Recurse <folder> <dest>` / `cp -R <folder> <dest>` when the
+> destination already exists — both **nest** the copy into `rich-html-plans/rich-html-plans/`, which
+> Claude won't load. The remove-then-copy form above avoids that and works for both first install and
+> updates.
 
 ### Option B — Project / team (committed to a repo, shared via git)
 
@@ -159,7 +184,9 @@ Copy the `rich-html-plans/` folder into the repo so everyone who clones it gets 
 ```
 
 ```bash
-mkdir -p .claude/skills && cp -R ./rich-html-plans .claude/skills/rich-html-plans
+mkdir -p .claude/skills
+rm -rf .claude/skills/rich-html-plans
+cp -R ./rich-html-plans .claude/skills/rich-html-plans
 git add .claude/skills/rich-html-plans && git commit -m "Add rich-html-plans skill"
 ```
 
@@ -358,6 +385,7 @@ per plan (the skill does this for you on each new plan).
 
 ## Updating later
 
-This is a one-off copy. If the skill is improved, re-copy the updated `rich-html-plans/`
-folder over the installed one. For automatic updates, package it as a Claude Code
-plugin/marketplace instead.
+This is a one-off copy. If the skill is improved, **re-run the same install command** from the
+[Install](#install) section — the remove-then-copy form replaces the installed copy cleanly (a plain
+`Copy-Item`/`cp -R` would instead nest it as `rich-html-plans/rich-html-plans/`, leaving the old
+version live). For automatic updates, package it as a Claude Code plugin/marketplace instead.
