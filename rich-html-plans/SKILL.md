@@ -32,6 +32,11 @@ This **complements** the plan-mode markdown plan file — it does not replace it
    - **Critical:** the script's `ids` array (near the bottom) must list exactly the tracked section ids, so the progress ring and roadmap reflect them. Keep `data-track` ids consistent across sidebar, roadmap, and pills.
 
 4. **Save** to the repo's `Plans/` folder (create it if missing) as `Plans/<kebab-title>-plan.html`.
+   - **Register it for the live dashboard (if enabled).** Run
+     `node <skill-dir>/assets/plans-registry.js add "<absolute plan path>"`. This appends/updates the
+     plan's entry in the central registry `~/.claude/plans-index.json`. It is a **no-op unless the
+     optional live dashboard is set up** (it only writes when that registry file already exists), so
+     it is safe to run after every save. See **Live dashboard (optional)** below.
 
 5. **Ensure the plan-aware SessionStart hook is installed** (one-time per repo). This makes every future Claude session in this repo — including ones the plan's "⏩ Continue plan" deep link opens — wake up already knowing the newest plan's `#plan-state`. Read `assets/session-start-hook.json` from this skill directory and **merge** its `hooks.SessionStart` entry into the repo's `.claude/settings.json` (create the file if missing; preserve any existing settings; if a SessionStart hook with this same command is already present, do nothing — it's idempotent). The hook is self-contained PowerShell (no `jq`/node), auto-discovers the newest `Plans/*-plan.html`, and **stays silent when that plan is 100% done**, so it never nags on finished work. **First-time caveat:** a hook written into a brand-new `.claude/settings.json` only takes effect after the user opens `/hooks` once or restarts Claude Code — the settings watcher doesn't pick up a `.claude/` directory that had no settings file when the session started. Say so when you install it the first time. See **Plan-aware sessions** below.
 
@@ -262,3 +267,26 @@ being told. The hook *reads* the plan; the plan's buttons don't reference the ho
   macOS/Linux, port the one-liner to bash; the surrounding JSON shape is identical.
 - **Watcher caveat.** If `.claude/settings.json` didn't exist when the session started, the new
   hook won't fire until the user opens `/hooks` once or restarts. Tell them on first install.
+
+## Live dashboard (optional)
+
+An **opt-in** companion that aggregates **every plan across all your projects** into one live,
+mobile-friendly link — a tiny zero-dependency Node server (`assets/plans-server.js`) reads the
+central registry `~/.claude/plans-index.json`, serves a newest-first dashboard at `/`, and serves
+each full plan live at `/plan/<id>`; `tailscale serve` exposes it privately so you can browse it
+from your phone. Nothing is hosted by a third party and the page is read-only.
+
+- **Fully optional & off by default.** The whole feature hinges on the registry file existing.
+  The skill's only involvement is the **register step in procedure step 4**, which is a no-op until
+  the user runs the setup. Anyone who never opts in sees no change whatsoever.
+- **Setup is one-time and documented in the README** ("Live plans dashboard"): run
+  `assets/setup-dashboard.ps1` (creates/seeds the registry, registers a login auto-start task, runs
+  `tailscale serve --bg`, and prints the phone URL). Requires Node, plus Tailscale on the PC and phone.
+- **Status is never duplicated** — the server reads each plan's live `#plan-state` at request time,
+  so the dashboard always reflects the real files.
+- **Archive / unarchive** — each card has a hover **⠿ Archive** button (↩ Unarchive on archived
+  cards); archived plans drop out of the main grid behind a **"Show archived (N)"** toggle. Archiving
+  only sets `"archived": true` on the plan's registry entry (the plan file is never touched) and is
+  fully reversible. This is the server's one write route (`POST /api/archive`, localhost-only). Same
+  thing from the CLI: `node assets/plans-registry.js archive <id>` / `unarchive <id>`, and `list`
+  tags archived rows.

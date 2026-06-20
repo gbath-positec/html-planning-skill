@@ -97,6 +97,7 @@
     color: var(--text);
     font: 15.5px/1.65 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
@@ -461,6 +462,42 @@
     .bgfx::before, .bgfx::after, .hero h1, .ring.surge { animation: none !important; }
     .spotlight { display: none; }
   }
+
+  /* ── Phone: off-canvas drawer sidebar (≤640px). Overrides the 940px static-stack rule. ── */
+  .nav-toggle, .nav-backdrop { display: none; }
+  @media (max-width: 640px) {
+    .nav-toggle {
+      position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 12px; z-index: 60;
+      display: grid; place-items: center; width: 44px; height: 44px; border-radius: 11px;
+      cursor: pointer; font-size: 19px; line-height: 1; color: var(--text); font-family: inherit;
+      background: color-mix(in srgb, var(--panel) 86%, transparent); border: 1px solid var(--border);
+      backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2);
+      box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    }
+    .shell { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed; top: 0; left: 0; z-index: 70; height: 100vh; height: 100dvh;
+      width: min(86vw, 320px); border-right: 1px solid var(--border); border-bottom: none;
+      transform: translateX(-100%); transition: transform .26s cubic-bezier(.2,.7,.2,1);
+      padding: calc(20px + env(safe-area-inset-top)) 18px 32px; overflow-y: auto;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+    }
+    body.nav-open .sidebar { transform: none; }
+    .nav-backdrop {
+      display: block; position: fixed; inset: 0; z-index: 65; background: rgba(0,0,0,.5);
+      opacity: 0; pointer-events: none; transition: opacity .26s;
+    }
+    body.nav-open .nav-backdrop { opacity: 1; pointer-events: auto; }
+    .main { padding: calc(64px + env(safe-area-inset-top)) 16px 70px; }
+    .hero h1 { font-size: 26px; }
+    .card { padding: 20px 17px; }
+    nav.toc a { padding: 9px 10px; font-size: 13.5px; }       /* larger touch targets */
+    nav.toc .toc-sub a { padding: 7px 10px 7px 6px; }
+    .status { padding: 9px 15px; }
+    /* waiting banner: full-width bar beside the menu button, not a centered tall pill */
+    .await-bar { left: 56px; right: 10px; transform: none; max-width: none; border-radius: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .sidebar, .nav-backdrop { transition: none !important; } }
 </style>
 </head>
 <body>
@@ -474,6 +511,9 @@
   <span class="wq"><b>Waiting for your input</b> <span class="qt" id="await-text"></span></span>
 </div>
 
+<!-- Phone nav drawer controls (hidden ≥641px) -->
+<button class="nav-toggle" id="nav-toggle" aria-label="Open navigation" aria-expanded="false">☰</button>
+<div class="nav-backdrop" id="nav-backdrop"></div>
 
 <div class="shell">
 
@@ -1276,10 +1316,44 @@
       if (!firstOpen) _instantTo(parseInt(savedY, 10) || 0);          // keep the reader where they were
     }
   })();
-  setInterval(function () {
+  // Soft auto-refresh: poll #plan-state and only hard-reload when it actually CHANGED, so a
+  // reader (especially on a phone over HTTP) isn't yanked back to the top every few seconds.
+  // On a file:// origin fetch is blocked → fall back to the original reload-with-restore.
+  var _stateEl0 = document.getElementById('plan-state');
+  var _lastState = _stateEl0 ? _stateEl0.textContent.trim() : '';
+  function _reloadKeepingScroll() {
     try { sessionStorage.setItem(SKEY, String(window.scrollY || window.pageYOffset || 0)); } catch (e) {}
     location.reload();
+  }
+  setInterval(function () {
+    try {
+      fetch(location.href, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (html) {
+        var m = html.match(/<script id="plan-state"[^>]*>([\s\S]*?)<\/script>/i);
+        var cur = m ? m[1].trim() : null;
+        if (cur !== null && cur !== _lastState) _reloadKeepingScroll();
+      }).catch(_reloadKeepingScroll);
+    } catch (e) { _reloadKeepingScroll(); }
   }, RELOAD_MS);
+})();
+</script>
+
+<!-- Phone nav drawer: toggle the off-canvas sidebar (no-op on wider screens) -->
+<script>
+(function () {
+  var t = document.getElementById('nav-toggle');
+  var bd = document.getElementById('nav-backdrop');
+  if (!t) return;
+  function set(open) {
+    document.body.classList.toggle('nav-open', open);
+    t.setAttribute('aria-expanded', open ? 'true' : 'false');
+    t.textContent = open ? '✕' : '☰';
+  }
+  t.addEventListener('click', function () { set(!document.body.classList.contains('nav-open')); });
+  if (bd) bd.addEventListener('click', function () { set(false); });
+  [].slice.call(document.querySelectorAll('.sidebar nav.toc a')).forEach(function (a) {
+    a.addEventListener('click', function () { set(false); });   // close after jumping
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
 })();
 </script>
 </body>

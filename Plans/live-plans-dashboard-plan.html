@@ -30,13 +30,24 @@
    • <div class="compare"> > div.good / .bad / .pick (each with a .ct label)  side-by-side
                comparison cards (before/after, option A vs B, trade-offs).
    • <table>, <ul>, <ol>, <code>, .pill, .chip, .legend
+
+  Quantitative — STATIC, author-baked numbers (compute widths/spans at write time; no JS):
+   • .hbar     labelled bars. One series = effort/size per phase; two (.bar.before/.bar.after)
+               = before/after a metric. Author sets each .bar width:% of the row max. Standalone.
+   • .stack    one 100% bar of tinted .seg's (author sets flex:<n> + a palette background);
+               pair with a .legend. Use for composition/breakdown of a whole. Standalone.
+   • .gantt    phases across time (overlap, sequencing, critical path). Grid set --cols:<N>;
+               each .gbar placed by inline grid-column:<start>/<end> (= time units); .gbar.crit
+               tints the critical path. Wrap in <div class="diagram"> with a .dg-title.
+   Use ONLY with real data: .gantt when there are durations/dependencies (not a plain checklist);
+   .hbar before/after when there's a measurable goal; .stack for 2–6 parts (more → a <table>).
 -->
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quantitative Plan Primitives — Implementation Plan</title>
-<script>try{var _t=localStorage.getItem('quantitative-plan-primitives-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<title>Live Plans Dashboard</title>
+<script>try{var _t=localStorage.getItem('live-plans-dashboard-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <style>
   :root {
     --bg: #0b0d12;
@@ -86,6 +97,7 @@
     color: var(--text);
     font: 15.5px/1.65 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
@@ -282,6 +294,34 @@
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
+  /* ── Quantitative primitives — static, author-baked numbers (no runtime JS) ── */
+  /* magnitude — labelled bars; one series = effort/size, two = before/after */
+  .hbar { display: flex; flex-direction: column; gap: 13px; margin: 16px 0; }
+  .hbar .row { display: grid; grid-template-columns: minmax(64px, 22%) 1fr; align-items: center; column-gap: 14px; }
+  .hbar .lbl { font-size: 13px; color: var(--muted); text-align: right; line-height: 1.3; }
+  .hbar .bars { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .hbar .barwrap { display: flex; align-items: center; gap: 9px; }
+  .hbar .ser { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); min-width: 46px; }
+  .hbar .bar { height: 20px; min-width: 2px; border-radius: 6px; background: var(--accent); }
+  .hbar .bar.before { background: var(--border); }
+  .hbar .bar.after  { background: var(--accent); }
+  .hbar .val { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  /* composition — one 100% bar split into tinted segments (author writes flex:<n> + a palette colour) */
+  .stack { display: flex; height: 26px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-soft); margin: 16px 0; }
+  .stack .seg { min-width: 3px; display: flex; align-items: center; justify-content: center; font-family: ui-monospace, monospace; font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); background: var(--accent); }
+
+  /* time — phases across a column axis; bars placed by inline grid-column (start/end = time units) */
+  .diagram:has(.gantt) { overflow-x: auto; }
+  .gantt { display: grid; grid-template-columns: minmax(64px, max-content) 1fr; align-items: center; gap: 7px 12px; min-width: 380px; }
+  .gantt .corner { content: ""; }
+  .g-head { display: grid; grid-template-columns: repeat(var(--cols), 1fr); }
+  .g-colhead { font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: .04em; color: var(--faint); text-align: center; padding-bottom: 3px; border-left: 1px solid var(--border-soft); }
+  .g-task { font-size: 13px; color: var(--muted); text-align: right; line-height: 1.3; }
+  .g-row { display: grid; grid-template-columns: repeat(var(--cols), 1fr); background-image: repeating-linear-gradient(90deg, var(--border-soft) 0 1px, transparent 1px calc(100% / var(--cols))); border-radius: 6px; }
+  .gbar { grid-row: 1; height: 22px; min-width: 4px; border-radius: 6px; background: var(--accent); display: flex; align-items: center; padding: 0 8px; font-family: ui-monospace, monospace; font-size: 11px; color: #fff; white-space: nowrap; box-shadow: var(--shadow); }
+  .gbar.crit { background: var(--amber); }
+
   /* ── Theatrical animations ── */
   @keyframes plan-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
   @keyframes pop-done { 0% { transform: scale(1); } 35% { transform: scale(1.16); } 70% { transform: scale(.97); } 100% { transform: scale(1); } }
@@ -422,6 +462,42 @@
     .bgfx::before, .bgfx::after, .hero h1, .ring.surge { animation: none !important; }
     .spotlight { display: none; }
   }
+
+  /* ── Phone: off-canvas drawer sidebar (≤640px). Overrides the 940px static-stack rule. ── */
+  .nav-toggle, .nav-backdrop { display: none; }
+  @media (max-width: 640px) {
+    .nav-toggle {
+      position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 12px; z-index: 60;
+      display: grid; place-items: center; width: 44px; height: 44px; border-radius: 11px;
+      cursor: pointer; font-size: 19px; line-height: 1; color: var(--text); font-family: inherit;
+      background: color-mix(in srgb, var(--panel) 86%, transparent); border: 1px solid var(--border);
+      backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2);
+      box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    }
+    .shell { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed; top: 0; left: 0; z-index: 70; height: 100vh; height: 100dvh;
+      width: min(86vw, 320px); border-right: 1px solid var(--border); border-bottom: none;
+      transform: translateX(-100%); transition: transform .26s cubic-bezier(.2,.7,.2,1);
+      padding: calc(20px + env(safe-area-inset-top)) 18px 32px; overflow-y: auto;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+    }
+    body.nav-open .sidebar { transform: none; }
+    .nav-backdrop {
+      display: block; position: fixed; inset: 0; z-index: 65; background: rgba(0,0,0,.5);
+      opacity: 0; pointer-events: none; transition: opacity .26s;
+    }
+    body.nav-open .nav-backdrop { opacity: 1; pointer-events: auto; }
+    .main { padding: calc(64px + env(safe-area-inset-top)) 16px 70px; }
+    .hero h1 { font-size: 26px; }
+    .card { padding: 20px 17px; }
+    nav.toc a { padding: 9px 10px; font-size: 13.5px; }       /* larger touch targets */
+    nav.toc .toc-sub a { padding: 7px 10px 7px 6px; }
+    .status { padding: 9px 15px; }
+    /* waiting banner: full-width bar beside the menu button, not a centered tall pill */
+    .await-bar { left: 56px; right: 10px; transform: none; max-width: none; border-radius: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .sidebar, .nav-backdrop { transition: none !important; } }
 </style>
 </head>
 <body>
@@ -435,13 +511,16 @@
   <span class="wq"><b>Waiting for your input</b> <span class="qt" id="await-text"></span></span>
 </div>
 
+<!-- Phone nav drawer controls (hidden ≥641px) -->
+<button class="nav-toggle" id="nav-toggle" aria-label="Open navigation" aria-expanded="false">☰</button>
+<div class="nav-backdrop" id="nav-backdrop"></div>
 
 <div class="shell">
 
   <!-- ───────── Sidebar ───────── -->
   <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><b>Chart Primitives</b></div>
-    <div class="brand-sub">⎇ deep-links · rich-html-plans</div>
+    <div class="brand"><span class="dot"></span><b>Plans Dashboard</b></div>
+    <div class="brand-sub">⎇ deep-links · opt-in feature</div>
 
     <div class="ring-wrap">
       <div class="ring" id="ring"><span id="ring-pct">0%</span></div>
@@ -450,18 +529,19 @@
 
     <div class="toc-label">Plan</div>
     <nav class="toc" id="toc">
-      <a href="#hbar" data-track="hbar"><span class="mk"></span>1 · .hbar</a>
-      <a href="#stack" data-track="stack"><span class="mk"></span>2 · .stack</a>
-      <a href="#gantt" data-track="gantt"><span class="mk"></span>3 · .gantt</a>
-      <a href="#docs" data-track="docs"><span class="mk"></span>4 · Documentation</a>
-      <a href="#verify-sync" data-track="verify-sync"><span class="mk"></span>5 · Verify &amp; sync</a>
+      <a href="#phase0" data-track="phase0"><span class="mk"></span>0 · Registry + skill hook</a>
+      <a href="#phase1" data-track="phase1"><span class="mk"></span>1 · Live Node server</a>
+      <a href="#phase2" data-track="phase2"><span class="mk"></span>2 · Mobile dashboard UI</a>
+      <a href="#phase3" data-track="phase3"><span class="mk"></span>3 · Plan template mobile pass</a>
+      <a href="#phase4" data-track="phase4"><span class="mk"></span>4 · Persistence + Tailscale</a>
+      <a href="#phase5" data-track="phase5"><span class="mk"></span>5 · README + verification</a>
     </nav>
     <div class="toc-label">Reference</div>
     <nav class="toc">
-      <a href="#context"><span class="mk" style="background:transparent"></span>Context &amp; rationale</a>
-      <a href="#scope"><span class="mk" style="background:transparent"></span>Scope &amp; cuts</a>
+      <a href="#architecture"><span class="mk" style="background:transparent"></span>Architecture</a>
       <a href="#critical"><span class="mk" style="background:transparent"></span>Critical files</a>
-      <a href="#verify"><span class="mk" style="background:transparent"></span>Acceptance checks</a>
+      <a href="#verify"><span class="mk" style="background:transparent"></span>Verification</a>
+      <a href="#deferred"><span class="mk" style="background:transparent"></span>Out of scope</a>
       <a href="#activity"><span class="mk" style="background:transparent"></span>Activity log</a>
     </nav>
 
@@ -482,24 +562,28 @@
 
     <header class="hero">
       <div class="eyebrow">Implementation Plan · rich-html-plans</div>
-      <h1>Quantitative Plan Primitives</h1>
-      <p>Add three <b>static</b> chart primitives — <code>.hbar</code>, <code>.stack</code>, <code>.gantt</code> — to the plan template, so plans can show magnitude, composition, and time. Pure CSS / inline-SVG with author-baked numbers: no runtime JS, no libraries, no 4s-reload flicker.</p>
+      <h1>Live Plans Dashboard</h1>
+      <p>An opt-in companion to the skill: one live, mobile-friendly link — served by a tiny
+      zero-dependency Node server on your PC and exposed privately over Tailscale — that
+      aggregates every plan across all your projects, newest first, with full plans readable
+      right on your phone.</p>
       <div class="chips">
-        <span class="chip">✦ 3 primitives</span>
-        <span class="chip">⎇ static markup, zero JS</span>
-        <span class="chip">◷ no 4s flicker</span>
-        <span class="chip">⊘ DAG / spark / matrix cut</span>
-        <span class="chip">⇄ sync 2 mirrors</span>
+        <span class="chip">✦ <b>Live</b> over <b>Tailscale serve</b></span>
+        <span class="chip">📇 Central registry <b>~/.claude/plans-index.json</b></span>
+        <span class="chip">📱 Mobile-first, full plans embedded</span>
+        <span class="chip">🔌 Zero-dep Node · no npm install</span>
+        <span class="chip">🧩 Fully opt-in · documented in README</span>
       </div>
     </header>
 
     <!-- Roadmap: one node per tracked section, data-track must match. -->
     <div class="roadmap" id="roadmap">
-      <a class="rm-node" href="#hbar" data-track="hbar"><div class="rm-num">1</div><div class="rm-label">.hbar</div></a>
-      <a class="rm-node" href="#stack" data-track="stack"><div class="rm-num">2</div><div class="rm-label">.stack</div></a>
-      <a class="rm-node" href="#gantt" data-track="gantt"><div class="rm-num">3</div><div class="rm-label">.gantt</div></a>
-      <a class="rm-node" href="#docs" data-track="docs"><div class="rm-num">4</div><div class="rm-label">Docs</div></a>
-      <a class="rm-node" href="#verify-sync" data-track="verify-sync"><div class="rm-num">5</div><div class="rm-label">Verify &amp; sync</div></a>
+      <a class="rm-node" href="#phase0" data-track="phase0"><div class="rm-num">0</div><div class="rm-label">Registry + hook</div></a>
+      <a class="rm-node" href="#phase1" data-track="phase1"><div class="rm-num">1</div><div class="rm-label">Node server</div></a>
+      <a class="rm-node" href="#phase2" data-track="phase2"><div class="rm-num">2</div><div class="rm-label">Dashboard UI</div></a>
+      <a class="rm-node" href="#phase3" data-track="phase3"><div class="rm-num">3</div><div class="rm-label">Plan mobile pass</div></a>
+      <a class="rm-node" href="#phase4" data-track="phase4"><div class="rm-num">4</div><div class="rm-label">Persist + Tailscale</div></a>
+      <a class="rm-node" href="#phase5" data-track="phase5"><div class="rm-num">5</div><div class="rm-label">README + verify</div></a>
     </div>
     <div class="legend">
       <span><i style="background:var(--border)"></i> To do</span>
@@ -508,165 +592,255 @@
       <span style="color:var(--faint)">— status reflects implementation progress; roadmap &amp; sidebar mirror it</span>
     </div>
 
-    <!-- ───────── Reference: context ───────── -->
-    <section id="context" class="card plain">
-      <div class="sec-kicker">Why</div>
-      <h2>Context &amp; rationale</h2>
-      <p>The template's diagram primitives (<code>.flow</code>, <code>.schema</code>, <code>.tree</code>, <code>.steps</code>, <code>.compare</code>) cover <b>qualitative</b> structure. They can't show <b>quantitative</b> plan content — and that content currently gets buried in prose or tables.</p>
+    <!-- ═════════ PHASE 0 ═════════ -->
+    <section id="phase0" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 0 · Foundation</div>
+          <h2>Central registry + skill hook <span class="muted-tail">— the on/off switch</span></h2>
+        </div>
+        <button class="status" data-track="phase0">To do</button>
+      </div>
+      <p>A single machine-local manifest lists every plan the skill has ever produced. Its
+      <em>existence</em> is what enables the whole feature — no file, no behaviour change for
+      anyone who never opts in.</p>
+
+      <div class="diagram">
+        <div class="dg-title">~/.claude/plans-index.json — one entry per plan</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">id</span><span class="col-type">string</span><span class="col-note">stable slug, e.g. live-plans-dashboard</span></div>
+          <div class="row"><span class="col-name">title</span><span class="col-type">string</span><span class="col-note">from the plan's &lt;title&gt;</span></div>
+          <div class="row"><span class="col-name">project</span><span class="col-type">string</span><span class="col-note">repo folder name (parent of Plans/)</span></div>
+          <div class="row"><span class="col-name">path</span><span class="col-type">string (abs)</span><span class="col-note">absolute path to the *-plan.html file</span></div>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <div class="dg-title">register-on-save — gated, harmless when off</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>Skill saves plan</b><small>Plans/*-plan.html</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>index.json exists?</b><small>feature enabled?</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>Upsert entry</b><small>dedupe by abs path</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node ans"><b>Else: no-op</b><small>zero change</small></div></div>
+        </div>
+      </div>
+
+      <ol class="steps" data-steps="phase0">
+        <li><b>Define the registry shape</b> and a tiny upsert helper (dedupe by absolute path).</li>
+        <li><b>Gate on existence</b> — only write when <code>~/.claude/plans-index.json</code> is present.</li>
+        <li><b>Document the SKILL.md step</b> so every plan-save appends/updates its entry.</li>
+      </ol>
+      <div class="callout">Status is <b>not</b> stored here — only locations. The server reads each
+      file's live <code>#plan-state</code> at request time, so the dashboard is never stale.</div>
+    </section>
+
+    <!-- ═════════ PHASE 1 ═════════ -->
+    <section id="phase1" class="card phase" data-accent="blue">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 1 · Backend</div>
+          <h2>Live Node server <span class="muted-tail">— zero dependencies</span></h2>
+        </div>
+        <button class="status" data-track="phase1">To do</button>
+      </div>
+      <p>A single <code>plans-server.js</code> using only Node built-ins (<code>http</code>,
+      <code>fs</code>, <code>path</code>) — <b>no npm install</b>, just <code>node plans-server.js</code>.
+      It reads files fresh on each request, so every view is current.</p>
+
+      <div class="diagram">
+        <div class="dg-title">routes</div>
+        <div class="schema">
+          <div class="row"><span class="col-name">GET /</span><span class="col-type">text/html</span><span class="col-note">dashboard shell — cards built from each plan's live #plan-state, newest first</span></div>
+          <div class="row"><span class="col-name">GET /plan/:id</span><span class="col-type">text/html</span><span class="col-note">that plan's file straight from disk; its own 4s reload makes it live over HTTP</span></div>
+          <div class="row"><span class="col-name">GET /api/plans</span><span class="col-type">application/json</span><span class="col-note">status feed the dashboard polls to refresh cards without a full reload</span></div>
+        </div>
+      </div>
+
+      <ol class="steps" data-steps="phase1">
+        <li><b>Static HTTP scaffold.</b> Bind <code>localhost:&lt;port&gt;</code>, route table, graceful 404.</li>
+        <li><b>Registry read + prune.</b> Load index.json; skip/drop entries whose file is gone.</li>
+        <li><b>#plan-state extraction.</b> Parse each plan's embedded JSON → percent, current phase, waiting.</li>
+        <li><b>Newest-first sort.</b> Order by file mtime descending; expose <code>updatedAt</code>.</li>
+        <li><b>/api/plans JSON.</b> Serialise the per-plan snapshot for the dashboard poller.</li>
+      </ol>
+    </section>
+
+    <!-- ═════════ PHASE 2 ═════════ -->
+    <section id="phase2" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 2 · Frontend</div>
+          <h2>Mobile-first dashboard UI <span class="muted-tail">— newest on top</span></h2>
+        </div>
+        <button class="status" data-track="phase2">To do</button>
+      </div>
+      <p>Served at <code>/</code>, matching the plans' visual language (theme toggle, glassy cards).
+      Single column on a phone; each card shows <b>project · status · progress · "updated 3m ago"</b>,
+      and tapping it opens the full plan.</p>
+
+      <div class="diagram">
+        <div class="dg-title">card → plan</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>/api/plans</b><small>poll every few s</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>Render cards</b><small>ring · phase · ⏳ waiting</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>Tap card</b><small>touch target</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node ans"><b>/plan/:id</b><small>full plan, live</small></div></div>
+        </div>
+      </div>
+
+      <ol class="steps" data-steps="phase2">
+        <li><b>Card grid + ring.</b> Reuse the progress-ring CSS; one card per plan, newest first.</li>
+        <li><b>Live poll.</b> Fetch <code>/api/plans</code> on an interval; update cards in place.</li>
+        <li><b>Mobile-first layout.</b> Single column, large tap targets, safe-area padding.</li>
+      </ol>
+    </section>
+
+    <!-- ═════════ PHASE 3 ═════════ -->
+    <section id="phase3" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 3 · Template</div>
+          <h2>Plan template mobile pass <span class="muted-tail">— helps every plan</span></h2>
+        </div>
+        <button class="status" data-track="phase3">To do</button>
+      </div>
+      <p>The current 940px breakpoint just stacks the sidebar above the content — a tall block
+      before you reach anything on a phone. Add a real phone breakpoint so individual plans read
+      well on mobile. This improves <em>all</em> plans, not just the dashboard.</p>
+
       <div class="compare">
-        <div class="bad"><div class="ct">Today — quantitative gaps</div><ul>
-          <li><b>Time</b> — which phases overlap, what blocks what, critical path</li>
-          <li><b>Magnitude</b> — relative effort per phase; a before/after metric</li>
-          <li><b>Composition</b> — how a whole splits ("60% is the migration")</li>
+        <div class="bad"><div class="ct">Now (≤940px)</div><ul>
+          <li>Sidebar becomes a tall top block</li>
+          <li>Content padding tuned for desktop</li>
+          <li>Tap targets small for touch</li>
         </ul></div>
-        <div class="good"><div class="ct">After — three primitives</div><ul>
-          <li><code>.gantt</code> → time / overlap / sequencing</li>
-          <li><code>.hbar</code> → magnitude (effort, or before/after)</li>
-          <li><code>.stack</code> → composition of a whole</li>
+        <div class="good"><div class="ct">After (phone)</div><ul>
+          <li>Sidebar collapses into a ☰ drawer</li>
+          <li>Full-width content, comfortable spacing</li>
+          <li>Larger touch targets, smooth in iframe</li>
         </ul></div>
       </div>
-      <div class="callout warn">
-        <b>The constraint that shapes everything:</b> the page does a hard <code>location.reload()</code> every 4&nbsp;s (<code>plan-template.html:1187</code>). Anything that lays out in JS <i>after</i> first paint re-flows and flickers each reload. So every primitive is <b>static markup with author-baked numbers</b> — Claude computes the widths / column spans at write time; the browser just paints styled elements. No runtime JS, no libraries.
-      </div>
-    </section>
 
-    <!-- ───────── Reference: scope & cuts ───────── -->
-    <section id="scope" class="card plain">
-      <div class="sec-kicker">Scope</div>
-      <h2>Scope &amp; cuts (YAGNI)</h2>
-      <p>Five primitives were considered; three are in scope. The cuts are deliberate and recorded so they aren't relitigated.</p>
-      <table>
-        <thead><tr><th>Primitive</th><th>Decision</th><th>Reason</th></tr></thead>
-        <tbody>
-          <tr><td><code>.gantt</code></td><td>✅ Build</td><td>The one thing nothing else shows — overlap, sequencing, critical path.</td></tr>
-          <tr><td><code>.hbar</code></td><td>✅ Build</td><td>Two jobs: per-phase effort <i>and</i> before/after metric (perf/migration plans).</td></tr>
-          <tr><td><code>.stack</code></td><td>✅ Build</td><td>Composition of a whole — distinct from <code>.hbar</code>, nearly free.</td></tr>
-          <tr><td><code>.spark</code></td><td>⊘ Cut</td><td>Needs a time-series most plans lack; the progress ring already shows "how far along."</td></tr>
-          <tr><td><code>.matrix</code></td><td>⊘ Cut</td><td>Only useful when a plan <i>is</i> a prioritization exercise. Revisit on real need.</td></tr>
-          <tr><td><code>.dag</code></td><td>⊘ Cut</td><td>Rare at plan scale; <code>.flow</code>/<code>.gantt</code>/<code>.tree</code> cover it. A runtime lib (dagre) would be the only ~100&nbsp;KB inline dep <i>and</i> the only one needing a flicker workaround — bad trade.</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- ───────── Phase 1 · .hbar ───────── -->
-    <section id="hbar" class="card phase">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Phase 1 · Magnitude</div>
-          <h2><code>.hbar</code> <span class="muted-tail">— labelled bars: effort, or before/after</span></h2>
-        </div>
-        <button class="status" data-track="hbar">To do</button>
-      </div>
-      <p>Start here — it's the simplest and proves the static-markup model. A standalone block (no <code>.diagram</code> wrapper, like <code>.compare</code>): rows of a left label, a track, and a <code>.bar</code> sized by inline <code>width:%</code>, with the value at the bar's end.</p>
-      <ol class="steps" data-steps="hbar">
-        <li><b>Add CSS to <code>&lt;style&gt;</code>.</b> <code>.hbar</code> (rows grid), <code>.hbar .row</code>, <code>.lbl</code>, <code>.track</code>, <code>.bar</code>; colors from <code>--accent</code> / <code>--muted</code>; the value label inline at bar end.</li>
-        <li><b>Single-series variant.</b> One bar per row = per-phase effort/size. Author writes <code>style="width:62%"</code> as a fraction of the row max.</li>
-        <li><b>Two-series variant.</b> <code>.bar.before</code> (muted) + <code>.bar.after</code> (accent) stacked in one row, so shrink/growth reads at a glance.</li>
-        <li><b>Verify in isolation.</b> Render both variants; check light/dark + narrow viewport before moving on.</li>
-      </ol>
-      <div class="callout"><b>Authoring contract:</b> widths are percentages of the row's own max value, baked in by the author. No JS reads the data.</div>
-    </section>
-
-    <!-- ───────── Phase 2 · .stack ───────── -->
-    <section id="stack" class="card phase">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Phase 2 · Composition</div>
-          <h2><code>.stack</code> <span class="muted-tail">— a 100% bar split into segments</span></h2>
-        </div>
-        <button class="status" data-track="stack">To do</button>
-      </div>
-      <p>One horizontal bar whose children are tinted segments. Uses flexbox so the author writes <b>raw values</b> as <code>flex:&lt;n&gt;</code> — flexbox normalizes to proportions, so no percentage math is needed.</p>
-      <ol class="steps" data-steps="stack">
-        <li><b>Add CSS.</b> <code>.stack</code> (flex row, rounded, overflow-hidden), <code>.stack .seg</code> tinted from the accent palette (<code>--accent</code>, <code>--accent-2</code>, <code>--cyan</code>, <code>--green</code>, <code>--amber</code>), plus a <code>.legend</code> row mapping colour → label → value.</li>
-        <li><b>Segment authoring.</b> Each <code>.seg style="flex:60"</code>; small segments still show a sliver. Document a 2–6 segment sweet spot — beyond that, use a table.</li>
-        <li><b>Legend.</b> Reuse the existing <code>.legend</code> styling so it themes consistently.</li>
-        <li><b>Verify.</b> 3-segment example, light/dark, narrow viewport.</li>
+      <ol class="steps" data-steps="phase3">
+        <li><b>Add a phone breakpoint</b> (~640px) below the existing 940px rule.</li>
+        <li><b>Drawer sidebar.</b> ☰ toggle; off-canvas nav that overlays, not pushes.</li>
+        <li><b>Touch sizing.</b> Bigger pills/links; verify scroll-spy + sub-steps still work.</li>
       </ol>
     </section>
 
-    <!-- ───────── Phase 3 · .gantt ───────── -->
-    <section id="gantt" class="card phase">
+    <!-- ═════════ PHASE 4 ═════════ -->
+    <section id="phase4" class="card phase" data-accent="blue">
       <div class="sec-head">
         <div class="titles">
-          <div class="sec-kicker">Phase 3 · Time</div>
-          <h2><code>.gantt</code> <span class="muted-tail">— phases across time; the most complex</span></h2>
+          <div class="sec-kicker">Phase 4 · Ops</div>
+          <h2>Persistence + Tailscale <span class="muted-tail">— always-on link</span></h2>
         </div>
-        <button class="status" data-track="gantt">To do</button>
+        <button class="status" data-track="phase4">To do</button>
       </div>
-      <p>Wrapped in the standard <code>.diagram</code> + <code>.dg-title</code>. A CSS grid with a leading label column plus N time columns; each task is a <code>.gbar</code> placed by an inline <code>grid-column: start / end</code>. Overlap and sequencing become visible because bars share the same column axis.</p>
-      <ol class="steps" data-steps="gantt">
-        <li><b>Add CSS.</b> <code>.gantt</code> (grid, <code>grid-template-columns</code> = label + repeat(N)), header row of column labels, <code>.gtask</code> label cells, <code>.gbar</code> with rounded fill + inline duration text. Optional <code>data-accent</code> to mark the critical path.</li>
-        <li><b>Placement convention.</b> Author writes <code>style="grid-column: 2 / 5"</code> per bar. Document the "column = time unit" rule and a worked 5-task example with one overlap.</li>
-        <li><b>Overflow.</b> Wrap in an <code>overflow-x:auto</code> container so a wide chart scrolls inside its own box and never causes horizontal <i>page</i> scroll.</li>
-        <li><b>Verify.</b> 5 tasks incl. one overlap + one critical-path tint; light/dark; narrow viewport scrolls within the box.</li>
+      <p>A setup script wires the server to run at login and exposes it privately over Tailscale,
+      then prints the phone URL. The server survives reboots; the link works whenever the PC is on.</p>
+
+      <ol class="steps" data-steps="phase4">
+        <li><b>setup-dashboard.ps1.</b> Creates the registry, picks a port, validates Node + Tailscale.</li>
+        <li><b>Login auto-start.</b> Register a Windows Scheduled Task (logon trigger) running the server.</li>
+        <li><b>Expose privately.</b> <code>tailscale serve --bg &lt;port&gt;</code> (tailnet-only, persists).</li>
+        <li><b>Print the URL.</b> Show <code>https://&lt;machine&gt;.&lt;tailnet&gt;.ts.net</code> for the phone.</li>
       </ol>
-      <div class="callout warn"><b>Watch:</b> the gantt is the one most likely to push page width. The <code>overflow-x:auto</code> wrapper is mandatory, matching how other wide content is handled.</div>
+      <div class="callout warn">Using <code>serve</code> (private to your tailnet), not
+      <code>funnel</code> (public). The phone just needs the Tailscale app on the same tailnet —
+      no other setup. macOS/Linux ports (launchd/systemd) documented in the README.</div>
     </section>
 
-    <!-- ───────── Phase 4 · Documentation ───────── -->
-    <section id="docs" class="card phase">
+    <!-- ═════════ PHASE 5 ═════════ -->
+    <section id="phase5" class="card phase" data-accent="green">
       <div class="sec-head">
         <div class="titles">
-          <div class="sec-kicker">Phase 4 · Docs</div>
-          <h2>Documentation <span class="muted-tail">— make the primitives discoverable</span></h2>
+          <div class="sec-kicker">Phase 5 · Docs + proof</div>
+          <h2>README + verification <span class="muted-tail">— opt-in walkthrough</span></h2>
         </div>
-        <button class="status" data-track="docs">To do</button>
+        <button class="status" data-track="phase5">To do</button>
       </div>
-      <p>Three coordinated doc edits so future plans actually use these — and use them <i>appropriately</i>.</p>
-      <ol class="steps" data-steps="docs">
-        <li><b>Cheatsheet comment.</b> Add a "Quantitative" group to the top-of-file comment (<code>plan-template.html:21-32</code>), one line each.</li>
-        <li><b>In-body example patterns.</b> Drop a copy-paste-ready commented block per primitive near the existing examples (<code>~:515-560</code>), with realistic baked numbers.</li>
-        <li><b>SKILL.md table.</b> Add the three to the Diagrams table (<code>SKILL.md:58-66</code>) with a one-line <i>when to use</i> and the honest <i>when not to</i> (the YAGNI filter), so plans don't sprout charts gratuitously.</li>
+      <p>Document the entire opt-in feature end to end, and verify the real flow on a phone before
+      calling it done.</p>
+
+      <ol class="steps" data-steps="phase5">
+        <li><b>README section.</b> Prerequisites (Node, Tailscale on PC + phone), run setup, get URL, troubleshooting.</li>
+        <li><b>SKILL.md pointer.</b> A short "Live dashboard (optional)" note linking the README.</li>
+        <li><b>End-to-end verify.</b> Open the URL on a phone; confirm newest-first, live status, full plan opens.</li>
       </ol>
     </section>
 
-    <!-- ───────── Phase 5 · Verify & sync ───────── -->
-    <section id="verify-sync" class="card phase">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">Phase 5 · Proof &amp; rollout</div>
-          <h2>Verify &amp; sync <span class="muted-tail">— visual proof, then propagate</span></h2>
+    <!-- ───────── REFERENCE sections (no tracking) ───────── -->
+    <section id="architecture" class="card plain">
+      <div class="sec-kicker">Map</div>
+      <h2>Architecture</h2>
+      <div class="diagram">
+        <div class="dg-title">phone → tailnet → your PC</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>Phone</b><small>Tailscale app</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>tailscale serve</b><small>private HTTPS URL</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>Node server</b><small>localhost:&lt;port&gt;</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col">
+            <div class="node ans"><b>plans-index.json</b><small>registry</small></div>
+            <div class="node ans"><b>Plans/*-plan.html</b><small>read live</small></div>
+          </div>
         </div>
-        <button class="status" data-track="verify-sync">To do</button>
       </div>
-      <p>This is presentation markup, so verification is visual; then propagate the change to the two mirrors.</p>
-      <ol class="steps" data-steps="verify-sync">
-        <li><b>Build a throwaway exercise plan</b> using all three (single + dual <code>.hbar</code>, a 5-task <code>.gantt</code> with overlap, a 3-segment <code>.stack</code>).</li>
-        <li><b>Open &amp; observe</b> in the plans Chrome instance: renders in <b>light and dark</b>; <b>no flicker</b> across ≥2 reloads; <b>no horizontal page scroll</b>; holds at a narrow viewport; existing primitives + tracker unaffected.</li>
-        <li><b>Sync mirrors.</b> Copy to the installed <code>~/.claude/skills/rich-html-plans/</code> and port to the <code>Quadshift/ai-library</code> mirror.</li>
-      </ol>
-      <div class="callout ok"><b>Done when:</b> all three render correctly in both themes with no flicker / no page-scroll, docs updated, and both mirrors carry the change.</div>
+      <div class="diagram">
+        <div class="dg-title">files added by this feature</div>
+        <div class="tree"><span class="dir">rich-html-plans/assets/</span>
+├─ <span class="nm">plans-server.js</span>      <small>zero-dep Node server (Phase 1–2)</small>
+├─ <span class="nm">setup-dashboard.ps1</span>  <small>registry + auto-start + tailscale (Phase 4)</small>
+└─ <span class="nm">plan-template.html</span>   <small>+ phone breakpoint (Phase 3)</small>
+<span class="dir">~/.claude/</span>
+└─ <span class="nm">plans-index.json</span>     <small>registry · its existence = feature ON (Phase 0)</small></div>
+      </div>
     </section>
 
-    <!-- ───────── Reference sections (no tracking) ───────── -->
     <section id="critical" class="card plain">
       <div class="sec-kicker">Map</div>
       <h2>Critical files</h2>
-      <div class="diagram">
-        <div class="dg-title">what changes</div>
-        <div class="tree"><span class="dir">rich-html-plans/</span>            <small>source of truth (this repo)</small>
-├─ <span class="dir">assets/</span>
-│  └─ <span class="nm">plan-template.html</span>  <small>+3 CSS blocks, +3 example comments, cheatsheet</small>
-└─ <span class="nm">SKILL.md</span>             <small>Diagrams table: +3 rows + when-not-to</small>
-
-<span class="dir">~/.claude/skills/rich-html-plans/</span>  <small>installed copy — sync in Phase 5</small>
-<span class="dir">Quadshift/ai-library</span>            <small>mirror — port in Phase 5</small></div>
-      </div>
-      <p class="muted-tail">All edits land inside the existing <code>&lt;style&gt;</code> block and comment regions — no changes to the JS, the tracker, or any existing primitive. Pure addition.</p>
+      <ul>
+        <li><code>rich-html-plans/assets/plans-server.js</code> — the server (new).</li>
+        <li><code>rich-html-plans/assets/setup-dashboard.ps1</code> — opt-in setup (new).</li>
+        <li><code>rich-html-plans/assets/plan-template.html</code> — phone breakpoint added.</li>
+        <li><code>rich-html-plans/SKILL.md</code> — register-on-save step + dashboard pointer.</li>
+        <li><code>README.md</code> — the opt-in "Live dashboard" walkthrough.</li>
+        <li><code>~/.claude/plans-index.json</code> — the registry (created by setup).</li>
+      </ul>
     </section>
 
     <section id="verify" class="card plain">
       <div class="sec-kicker">Proof</div>
-      <h2>Acceptance checks</h2>
+      <h2>Verification</h2>
       <ul>
-        <li>✓ All three render correctly in <b>both light and dark</b> (toggle).</li>
-        <li>✓ <b>No flicker</b> across at least two 4s reloads (the core constraint).</li>
-        <li>✓ <b>No horizontal page scroll</b> — a wide <code>.gantt</code> scrolls within its own box.</li>
-        <li>✓ Layout holds at a <b>narrow viewport</b>.</li>
-        <li>✓ <code>.hbar</code> single + dual series; <code>.stack</code> 3 segments; <code>.gantt</code> 5 tasks with one overlap + critical-path tint.</li>
-        <li>✓ Existing primitives + progress tracker <b>unaffected</b>.</li>
-        <li>✓ Both mirrors carry the change.</li>
+        <li>Make a plan in a second project → its entry appears in the registry.</li>
+        <li><code>node plans-server.js</code> → <code>/</code> lists all plans, newest first, with project + status.</li>
+        <li>Edit a plan's <code>#plan-state</code> → the card's status updates within the poll interval.</li>
+        <li>Tap a card → the full plan opens and its own progress stays live.</li>
+        <li>On a phone over Tailscale: the URL loads; layout is single-column with a drawer nav.</li>
+        <li>Reboot → server auto-starts; the URL works without manual steps.</li>
+        <li>Feature off (no registry) → the skill behaves exactly as before.</li>
+      </ul>
+    </section>
+
+    <section id="deferred" class="card plain deferred">
+      <div class="sec-kicker">Boundaries</div>
+      <h2>Out of scope <span class="pill defer">v1</span></h2>
+      <ul>
+        <li><b>Public funnel</b> — tailnet-private <code>serve</code> only.</li>
+        <li><b>Multi-machine merge</b> — registry is per-machine.</li>
+        <li><b>Editing status from the phone</b> — dashboard is read-only.</li>
+        <li><b>App-level auth</b> — Tailscale network ACLs are the boundary.</li>
       </ul>
     </section>
 
@@ -676,7 +850,7 @@
       <h2>Activity log</h2>
     </section>
 
-    <footer>Quantitative Plan Primitives · rich-html-plans</footer>
+    <footer>Live Plans Dashboard</footer>
 
   </main>
 </div>
@@ -686,25 +860,30 @@
      • The page auto-refreshes every few seconds, so edits here show up on their own. -->
 <script id="plan-state" type="application/json">
 {
-  "status": { "hbar": "done", "stack": "done", "gantt": "done", "docs": "done", "verify-sync": "done" },
+  "status": { "phase0": "done", "phase1": "done", "phase2": "done", "phase3": "done", "phase4": "done", "phase5": "done" },
+  "steps": { "phase0": 3, "phase1": 5, "phase2": 3, "phase3": 3, "phase4": 4, "phase5": 3 },
   "log": [
-    { "t": "Phase 1", "text": ".hbar — single + before/after series" },
-    { "t": "Phase 2", "text": ".stack — tinted segments + legend" },
-    { "t": "Phase 3", "text": ".gantt — grid timeline, overlap + critical path" },
-    { "t": "Phase 4", "text": "cheatsheet, in-body examples, SKILL.md table updated" },
-    { "t": "Phase 5", "text": "visually verified (headless screenshot, both themes); installed copy synced." },
-    { "t": "Mirror", "text": "Quadshift/ai-library PR #6 opened — template + SKILL.md + README. Left open (PR-only; user merges)." }
+    { "t": "18:42", "text": "Phase 0 done — plans-registry.js (init/add/prune/list) + SKILL.md register step; gating + dedupe tested" },
+    { "t": "18:48", "text": "Phase 1+2 done — plans-server.js: /, /plan/:id, /api/plans verified (newest-first, live #plan-state); mobile-first dashboard UI + 5s poll; client script syntax-checked" },
+    { "t": "18:54", "text": "Phase 3 done — off-canvas drawer sidebar (☰) at ≤640px in plan-template.html + this plan; full-width content, larger touch targets" },
+    { "t": "19:20", "text": "Phase 4 done — setup-dashboard.ps1 (registry seed + logon Scheduled Task + tailscale serve --bg + URL); parses clean, seed-scan verified. Live install is the user's opt-in step (persistent system change), run as Phase 5 verification." },
+    { "t": "19:20", "text": "Side-fix: corrected ~/.claude/settings.json — moved defaultMode into permissions so bypassPermissions actually applies (needs a restart)." },
+    { "t": "19:45", "text": "Live install: registry seeded (6 plans), server up on :7878. Scheduled Task was Access-denied → added no-admin Startup-folder .vbs launcher; verified it relaunches the server. Persistence works without admin." },
+    { "t": "19:46", "text": "Tailscale Serve not yet enabled on the tailnet — waiting on user to enable HTTPS + Serve in the admin console, then I run 'serve --bg 7878'. Future URL: https://geetdesktop.tail18f515.ts.net/" },
+    { "t": "20:05", "text": "LIVE: Serve enabled; https://geetdesktop.tail18f515.ts.net/ returns 200 with all 6 plans (first call was cert provisioning). Also hardened setup-dashboard.ps1 to verify serve actually bound (no more false 'OK'). Phase 5 done; final check = open the URL on the phone." },
+    { "t": "20:40", "text": "Phone polish (browser-verified): dashboard card titles hard-wrap + grid minmax(min(290px,100%),1fr); plan waiting-banner becomes a proper top bar on mobile (was a tall blob); body overflow-x guard; and the 4s hard-reload is now a soft-refresh that only reloads when #plan-state changed — fixes the scroll-jump-to-top. Applied to plan-template.html + dashboard." }
   ],
   "deepLinks": {
     "cwd": "C:/Users/gbath.SURREY/Desktop/html-plan-skill",
-    "planPath": "Plans/quantitative-plan-primitives-plan.html"
+    "planPath": "Plans/live-plans-dashboard-plan.html"
   },
   "actions": {
-    "hbar":        { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 1 (.hbar) per the design spec docs/superpowers/specs/2026-06-19-quantitative-plan-primitives-design.md." },
-    "stack":       { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 2 (.stack)." },
-    "gantt":       { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 3 (.gantt)." },
-    "docs":        { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 4 (documentation)." },
-    "verify-sync": { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 5 (verify and sync the two mirrors)." }
+    "phase0": { "start": "Open the plan at Plans/live-plans-dashboard-plan.html and implement Phase 0 (central registry ~/.claude/plans-index.json + gated register-on-save). Update #plan-state as you go." },
+    "phase1": { "start": "Open the plan at Plans/live-plans-dashboard-plan.html and implement Phase 1 (zero-dep Node plans-server.js with routes /, /plan/:id, /api/plans; newest-first by mtime). Update #plan-state as you go." },
+    "phase2": { "start": "Open the plan at Plans/live-plans-dashboard-plan.html and implement Phase 2 (mobile-first dashboard UI: cards with project/status/ring/updated-ago, poll /api/plans, tap to open plan). Update #plan-state as you go." },
+    "phase3": { "start": "Open the plan at Plans/live-plans-dashboard-plan.html and implement Phase 3 (plan-template.html phone breakpoint: drawer sidebar, full-width content, touch targets). Update #plan-state as you go." },
+    "phase4": { "start": "Open the plan at Plans/live-plans-dashboard-plan.html and implement Phase 4 (setup-dashboard.ps1: registry, login auto-start scheduled task, tailscale serve --bg, print URL). Update #plan-state as you go." },
+    "phase5": { "start": "Open the plan at Plans/live-plans-dashboard-plan.html and implement Phase 5 (README opt-in walkthrough + SKILL.md pointer + end-to-end phone verification). Update #plan-state as you go." }
   }
 }
 </script>
@@ -712,9 +891,9 @@
 <script>
 (function () {
   // ── Config ──
-  var TKEY = 'quantitative-plan-primitives-theme';     // localStorage: theme preference
-  var SKEY = 'quantitative-plan-primitives-scroll';    // sessionStorage: scroll Y across reload
-  var ids = ['hbar', 'stack', 'gantt', 'docs', 'verify-sync']; // EXACTLY the tracked section ids
+  var TKEY = 'live-plans-dashboard-theme';     // localStorage: theme preference
+  var SKEY = 'live-plans-dashboard-scroll';    // sessionStorage: scroll Y across reload
+  var ids = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5']; // EXACTLY the tracked section ids
   var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
   var RELOAD_MS = 4000;
 
@@ -1302,10 +1481,44 @@
       if (!firstOpen) _instantTo(parseInt(savedY, 10) || 0);          // keep the reader where they were
     }
   })();
-  setInterval(function () {
+  // Soft auto-refresh: poll #plan-state and only hard-reload when it actually CHANGED, so a
+  // reader (especially on a phone over HTTP) isn't yanked back to the top every few seconds.
+  // On a file:// origin fetch is blocked → fall back to the original reload-with-restore.
+  var _stateEl0 = document.getElementById('plan-state');
+  var _lastState = _stateEl0 ? _stateEl0.textContent.trim() : '';
+  function _reloadKeepingScroll() {
     try { sessionStorage.setItem(SKEY, String(window.scrollY || window.pageYOffset || 0)); } catch (e) {}
     location.reload();
+  }
+  setInterval(function () {
+    try {
+      fetch(location.href, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (html) {
+        var m = html.match(/<script id="plan-state"[^>]*>([\s\S]*?)<\/script>/i);
+        var cur = m ? m[1].trim() : null;
+        if (cur !== null && cur !== _lastState) _reloadKeepingScroll();
+      }).catch(_reloadKeepingScroll);
+    } catch (e) { _reloadKeepingScroll(); }
   }, RELOAD_MS);
+})();
+</script>
+
+<!-- Phone nav drawer: toggle the off-canvas sidebar (no-op on wider screens) -->
+<script>
+(function () {
+  var t = document.getElementById('nav-toggle');
+  var bd = document.getElementById('nav-backdrop');
+  if (!t) return;
+  function set(open) {
+    document.body.classList.toggle('nav-open', open);
+    t.setAttribute('aria-expanded', open ? 'true' : 'false');
+    t.textContent = open ? '✕' : '☰';
+  }
+  t.addEventListener('click', function () { set(!document.body.classList.contains('nav-open')); });
+  if (bd) bd.addEventListener('click', function () { set(false); });
+  [].slice.call(document.querySelectorAll('.sidebar nav.toc a')).forEach(function (a) {
+    a.addEventListener('click', function () { set(false); });   // close after jumping
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
 })();
 </script>
 </body>

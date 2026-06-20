@@ -36,6 +36,13 @@ The skill reaches for a **visual** wherever one helps — data flows, data model
 ordered procedures, A-vs-B trade-offs, and file trees all render as clean,
 pre-styled diagrams. A plan ends up mostly pictures, which is far easier to review.
 
+When a plan has real **numbers**, it reaches for **quantitative** charts too:
+**effort/before-after bars** (`.hbar`), a **composition stack** showing how a whole
+splits into parts (`.stack`), and a **Gantt timeline** with overlap, sequencing, and
+a highlighted critical path (`.gantt`). These are static — widths and column spans
+are computed at authoring time and baked into the HTML, so there's no runtime JS and
+no flicker on the auto-reload.
+
 ![Flow diagrams, comparison cards, and a second flow](screenshots/03-diagrams.png)
 
 ### 🗂️ Reference sections that travel with the plan
@@ -107,7 +114,10 @@ html-plan-skill/
     ├── SKILL.md              # the skill definition Claude reads
     └── assets/
         ├── plan-template.html      # the HTML template the skill fills in
-        └── session-start-hook.json # the optional plan-aware SessionStart hook
+        ├── session-start-hook.json # the optional plan-aware SessionStart hook
+        ├── plans-registry.js       # optional dashboard: central registry of all plans
+        ├── plans-server.js         # optional dashboard: zero-dep live server
+        └── setup-dashboard.ps1     # optional dashboard: one-time setup (Windows)
 ```
 
 You only install the **`rich-html-plans/`** folder. The README and screenshots are just
@@ -247,6 +257,102 @@ you just ask for them:
   read-only, dependency-free (PowerShell on Windows), and silent once the plan is
   done. As with any new hook, it takes effect after you open `/hooks` once or
   restart.
+
+---
+
+## Optional: a live dashboard of all your plans (phone-friendly)
+
+Plans pile up across many projects, each in its own `Plans/` folder. This **opt-in**
+add-on gives you **one live link** — served by a tiny zero-dependency Node server on your
+PC and exposed privately over **Tailscale** — that lists every plan you've made, newest
+first, with each full plan readable right on your phone. Status is read live from the plan
+files, so it's never stale; tap a card and the plan's own auto-refresh keeps it current.
+
+It is **entirely optional and off by default.** The skill only registers a plan if the
+registry file already exists, so if you never run the setup below, nothing changes.
+
+![The live dashboard — newest-first plan cards with progress rings, a LIVE indicator, per-card Archive button, and a "Show archived" toggle](screenshots/09-dashboard.png)
+
+### How it works
+
+```
+phone (Tailscale app, same tailnet)
+   │  https://<your-machine>.<tailnet>.ts.net
+   ▼
+tailscale serve  →  Node server (localhost)  ──reads──►  ~/.claude/plans-index.json   (registry)
+                         │                                 each project's Plans/*-plan.html  (live)
+   GET /         dashboard: newest-first cards
+   GET /plan/:id full plan from disk (its 4s reload makes it live over HTTP)
+   GET /api/plans JSON the dashboard polls to refresh cards
+```
+
+- **Registry** `~/.claude/plans-index.json` — just the *locations* of your plans
+  (`id`, `title`, `project`, `path`). Its existence is the on/off switch.
+- **Server** `assets/plans-server.js` — Node built-ins only, no `npm install`.
+- **Status is never duplicated** — the server re-reads each plan's `#plan-state` per request.
+
+### Prerequisites
+
+1. **Node.js** on your PATH (`node --version`).
+2. **Tailscale** installed and signed in on **both** this PC and your phone, on the **same
+   tailnet** (the free plan is fine). Install the Tailscale app on your phone from its app store.
+3. **Tailscale Serve + HTTPS enabled once** in your admin console (Serve needs an HTTPS cert
+   for your machine name):
+   - In **[admin → DNS](https://login.tailscale.com/admin/dns)**: enable **MagicDNS**, then
+     **Enable HTTPS**.
+   - If `tailscale serve` reports *"Serve is not enabled on your tailnet,"* open the link it
+     prints (e.g. `https://login.tailscale.com/f/serve?node=...`) and approve it. Then re-run
+     the setup (or just `tailscale serve --bg <port>`).
+
+### Setup (Windows — one time)
+
+From the skill's `assets/` folder:
+
+```powershell
+# -Root tells it where to scan for existing plans to seed the registry (defaults to the
+# current folder). Point it at wherever your projects live.
+powershell -ExecutionPolicy Bypass -File .\setup-dashboard.ps1 -Root $HOME\Desktop
+```
+
+This will:
+1. **Enable + seed** the registry (`~/.claude/plans-index.json`) from any `Plans/*-plan.html`
+   it finds under `-Root`.
+2. **Register a logon Scheduled Task** so the server auto-starts and survives reboots.
+3. Run **`tailscale serve --bg <port>`** to expose it privately (tailnet-only — *not* the
+   public `funnel`).
+4. **Print the URL** to open on your phone, e.g. `https://your-pc.tailXXXX.ts.net/`.
+
+Open that URL on your phone (signed into the same tailnet) and you'll see all your plans.
+**New plans register automatically** from then on; re-run the script anytime to re-seed.
+
+> **Persistence without admin.** Registering the logon Scheduled Task may fail with *"Access is
+> denied"* on locked-down machines. The script automatically falls back to a per-user
+> **Startup-folder launcher** (`RichHtmlPlansDashboard.vbs`) that starts the server hidden at
+> every logon — no elevation required. To get the Scheduled Task instead, re-run the script from
+> an **elevated** PowerShell.
+
+To remove it later: `powershell -File .\setup-dashboard.ps1 -Uninstall` (removes the task and
+the serve rule; leaves the registry).
+
+### macOS / Linux
+
+The server and registry are cross-platform (`node plans-server.js`); only the setup script
+is Windows-specific. On macOS/Linux, run the server under **launchd**/**systemd** (or just
+`node plans-server.js &`) and expose it with the same `tailscale serve --bg <port>`. Seed the
+registry once with `node plans-registry.js init`, then `node plans-registry.js add <plan.html>`
+per plan (the skill does this for you on each new plan).
+
+### Notes & limits (v1)
+
+- **Tailnet-private**, not public — only your signed-in devices can reach the link. No extra
+  password (Tailscale's network ACLs are the boundary).
+- **Read-only on status** — you view progress and open plans; you don't flip phase
+  statuses from the phone. The one exception is **archiving**: each card has a hover
+  **⠿ Archive** button (↩ Unarchive on archived cards) that tucks finished plans behind
+  a **"Show archived (N)"** toggle. Archiving only flags the plan's registry entry
+  (`"archived": true`) — the plan file is never touched — and is fully reversible, from
+  the card or the CLI (`node plans-registry.js archive <id>` / `unarchive <id>`).
+- **Per-machine** — the registry lists plans on *this* PC; it doesn't merge multiple machines.
 
 ---
 
