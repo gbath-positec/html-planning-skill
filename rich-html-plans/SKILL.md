@@ -65,7 +65,15 @@ Pick the primitive by what you're showing (all pre-styled in the template — co
 | A short emphasis, caveat, or acceptance check | `.callout` (`.warn` / `.ok`) |
 | Dense factual rows (decisions, files × vars) | `<table>` |
 
-Wrap `.flow` / `.schema` / `.tree` in `<div class="diagram"><div class="dg-title">…</div>…</div>`. `.steps`, `.compare`, `<table>`, and `.callout` stand on their own. Keep each diagram focused — two small diagrams beat one busy one.
+**Quantitative** — for showing *numbers* (magnitude, composition, time). These are **static**: you compute the widths / column spans at authoring time and bake them into the markup (no runtime JS, no flicker on the 4s reload). Use each only when the plan has the real data:
+
+| You're showing… | Use | Use it when… |
+|---|---|---|
+| Relative effort/size per phase, **or** a before/after metric | `.hbar` — bar rows; one series = effort, two (`.bar.before`/`.bar.after`) = before/after | phases are meaningfully uneven, or there's a measurable goal (perf, size, cost). Skip if phases are equal / the goal is qualitative. |
+| How a whole splits into parts ("60% is the migration") | `.stack` — one bar of tinted `.seg`s (`flex:<n>`) + a `.legend` | there's a real composition of **2–6** parts. More parts → a `<table>`. |
+| Phases across time — overlap, sequencing, critical path | `.gantt` — grid with `--cols:<N>`; each `.gbar` placed by `grid-column:<start>/<end>`; `.gbar.crit` = critical path | the plan has durations/dependencies/a deadline. Skip for a plain ordered checklist (use the roadmap or `.steps`). |
+
+Wrap `.flow` / `.schema` / `.tree` / `.gantt` in `<div class="diagram"><div class="dg-title">…</div>…</div>`. `.steps`, `.compare`, `.hbar`, `.stack`, `<table>`, and `.callout` stand on their own. Keep each diagram focused — two small diagrams beat one busy one.
 
 ## Notes
 

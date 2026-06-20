@@ -30,24 +30,13 @@
    • <div class="compare"> > div.good / .bad / .pick (each with a .ct label)  side-by-side
                comparison cards (before/after, option A vs B, trade-offs).
    • <table>, <ul>, <ol>, <code>, .pill, .chip, .legend
-
-  Quantitative — STATIC, author-baked numbers (compute widths/spans at write time; no JS):
-   • .hbar     labelled bars. One series = effort/size per phase; two (.bar.before/.bar.after)
-               = before/after a metric. Author sets each .bar width:% of the row max. Standalone.
-   • .stack    one 100% bar of tinted .seg's (author sets flex:<n> + a palette background);
-               pair with a .legend. Use for composition/breakdown of a whole. Standalone.
-   • .gantt    phases across time (overlap, sequencing, critical path). Grid set --cols:<N>;
-               each .gbar placed by inline grid-column:<start>/<end> (= time units); .gbar.crit
-               tints the critical path. Wrap in <div class="diagram"> with a .dg-title.
-   Use ONLY with real data: .gantt when there are durations/dependencies (not a plain checklist);
-   .hbar before/after when there's a measurable goal; .stack for 2–6 parts (more → a <table>).
 -->
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{TITLE}}</title>
-<script>try{var _t=localStorage.getItem('{{KEBAB_TITLE}}-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<title>Quantitative Plan Primitives — Implementation Plan</title>
+<script>try{var _t=localStorage.getItem('quantitative-plan-primitives-theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <style>
   :root {
     --bg: #0b0d12;
@@ -293,34 +282,6 @@
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
-  /* ── Quantitative primitives — static, author-baked numbers (no runtime JS) ── */
-  /* magnitude — labelled bars; one series = effort/size, two = before/after */
-  .hbar { display: flex; flex-direction: column; gap: 13px; margin: 16px 0; }
-  .hbar .row { display: grid; grid-template-columns: minmax(64px, 22%) 1fr; align-items: center; column-gap: 14px; }
-  .hbar .lbl { font-size: 13px; color: var(--muted); text-align: right; line-height: 1.3; }
-  .hbar .bars { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-  .hbar .barwrap { display: flex; align-items: center; gap: 9px; }
-  .hbar .ser { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); min-width: 46px; }
-  .hbar .bar { height: 20px; min-width: 2px; border-radius: 6px; background: var(--accent); }
-  .hbar .bar.before { background: var(--border); }
-  .hbar .bar.after  { background: var(--accent); }
-  .hbar .val { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); white-space: nowrap; }
-
-  /* composition — one 100% bar split into tinted segments (author writes flex:<n> + a palette colour) */
-  .stack { display: flex; height: 26px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-soft); margin: 16px 0; }
-  .stack .seg { min-width: 3px; display: flex; align-items: center; justify-content: center; font-family: ui-monospace, monospace; font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); background: var(--accent); }
-
-  /* time — phases across a column axis; bars placed by inline grid-column (start/end = time units) */
-  .diagram:has(.gantt) { overflow-x: auto; }
-  .gantt { display: grid; grid-template-columns: minmax(64px, max-content) 1fr; align-items: center; gap: 7px 12px; min-width: 380px; }
-  .gantt .corner { content: ""; }
-  .g-head { display: grid; grid-template-columns: repeat(var(--cols), 1fr); }
-  .g-colhead { font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: .04em; color: var(--faint); text-align: center; padding-bottom: 3px; border-left: 1px solid var(--border-soft); }
-  .g-task { font-size: 13px; color: var(--muted); text-align: right; line-height: 1.3; }
-  .g-row { display: grid; grid-template-columns: repeat(var(--cols), 1fr); background-image: repeating-linear-gradient(90deg, var(--border-soft) 0 1px, transparent 1px calc(100% / var(--cols))); border-radius: 6px; }
-  .gbar { grid-row: 1; height: 22px; min-width: 4px; border-radius: 6px; background: var(--accent); display: flex; align-items: center; padding: 0 8px; font-family: ui-monospace, monospace; font-size: 11px; color: #fff; white-space: nowrap; box-shadow: var(--shadow); }
-  .gbar.crit { background: var(--amber); }
-
   /* ── Theatrical animations ── */
   @keyframes plan-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
   @keyframes pop-done { 0% { transform: scale(1); } 35% { transform: scale(1.16); } 70% { transform: scale(.97); } 100% { transform: scale(1); } }
@@ -479,8 +440,8 @@
 
   <!-- ───────── Sidebar ───────── -->
   <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><b>{{SHORT_TITLE}}</b></div>
-    <div class="brand-sub">{{SUBTAG e.g. ⎇ branch-name}}</div>
+    <div class="brand"><span class="dot"></span><b>Chart Primitives</b></div>
+    <div class="brand-sub">⎇ deep-links · rich-html-plans</div>
 
     <div class="ring-wrap">
       <div class="ring" id="ring"><span id="ring-pct">0%</span></div>
@@ -489,15 +450,18 @@
 
     <div class="toc-label">Plan</div>
     <nav class="toc" id="toc">
-      <!-- One link per TRACKED section. data-track must match the section id + pill. -->
-      <a href="#sectionA" data-track="sectionA"><span class="mk"></span>Section A</a>
-      <!-- ...more tracked links... -->
+      <a href="#hbar" data-track="hbar"><span class="mk"></span>1 · .hbar</a>
+      <a href="#stack" data-track="stack"><span class="mk"></span>2 · .stack</a>
+      <a href="#gantt" data-track="gantt"><span class="mk"></span>3 · .gantt</a>
+      <a href="#docs" data-track="docs"><span class="mk"></span>4 · Documentation</a>
+      <a href="#verify-sync" data-track="verify-sync"><span class="mk"></span>5 · Verify &amp; sync</a>
     </nav>
     <div class="toc-label">Reference</div>
     <nav class="toc">
-      <!-- Non-tracked links: leave .mk transparent, no data-track. -->
+      <a href="#context"><span class="mk" style="background:transparent"></span>Context &amp; rationale</a>
+      <a href="#scope"><span class="mk" style="background:transparent"></span>Scope &amp; cuts</a>
       <a href="#critical"><span class="mk" style="background:transparent"></span>Critical files</a>
-      <a href="#verify"><span class="mk" style="background:transparent"></span>Verification</a>
+      <a href="#verify"><span class="mk" style="background:transparent"></span>Acceptance checks</a>
       <a href="#activity"><span class="mk" style="background:transparent"></span>Activity log</a>
     </nav>
 
@@ -517,19 +481,25 @@
   <main class="main">
 
     <header class="hero">
-      <div class="eyebrow">{{EYEBROW e.g. Implementation Plan}}</div>
-      <h1>{{TITLE}}</h1>
-      <p>{{SUBTITLE — one or two sentences}}</p>
+      <div class="eyebrow">Implementation Plan · rich-html-plans</div>
+      <h1>Quantitative Plan Primitives</h1>
+      <p>Add three <b>static</b> chart primitives — <code>.hbar</code>, <code>.stack</code>, <code>.gantt</code> — to the plan template, so plans can show magnitude, composition, and time. Pure CSS / inline-SVG with author-baked numbers: no runtime JS, no libraries, no 4s-reload flicker.</p>
       <div class="chips">
-        <span class="chip">{{✦ highlight}}</span>
-        <!-- a few key facts as chips -->
+        <span class="chip">✦ 3 primitives</span>
+        <span class="chip">⎇ static markup, zero JS</span>
+        <span class="chip">◷ no 4s flicker</span>
+        <span class="chip">⊘ DAG / spark / matrix cut</span>
+        <span class="chip">⇄ sync 2 mirrors</span>
       </div>
     </header>
 
     <!-- Roadmap: one node per tracked section, data-track must match. -->
     <div class="roadmap" id="roadmap">
-      <a class="rm-node" href="#sectionA" data-track="sectionA"><div class="rm-num">1</div><div class="rm-label">Section A</div></a>
-      <!-- ...more nodes... -->
+      <a class="rm-node" href="#hbar" data-track="hbar"><div class="rm-num">1</div><div class="rm-label">.hbar</div></a>
+      <a class="rm-node" href="#stack" data-track="stack"><div class="rm-num">2</div><div class="rm-label">.stack</div></a>
+      <a class="rm-node" href="#gantt" data-track="gantt"><div class="rm-num">3</div><div class="rm-label">.gantt</div></a>
+      <a class="rm-node" href="#docs" data-track="docs"><div class="rm-num">4</div><div class="rm-label">Docs</div></a>
+      <a class="rm-node" href="#verify-sync" data-track="verify-sync"><div class="rm-num">5</div><div class="rm-label">Verify &amp; sync</div></a>
     </div>
     <div class="legend">
       <span><i style="background:var(--border)"></i> To do</span>
@@ -538,131 +508,166 @@
       <span style="color:var(--faint)">— status reflects implementation progress; roadmap &amp; sidebar mirror it</span>
     </div>
 
-    <!-- ───────── Example TRACKED section ───────── -->
-    <section id="sectionA" class="card phase">
-      <div class="sec-head">
-        <div class="titles">
-          <div class="sec-kicker">{{KICKER e.g. Phase 1 · Foundation}}</div>
-          <h2>{{Section title}} <span class="muted-tail">— optional subtitle</span></h2>
-        </div>
-        <button class="status" data-track="sectionA">To do</button>
+    <!-- ───────── Reference: context ───────── -->
+    <section id="context" class="card plain">
+      <div class="sec-kicker">Why</div>
+      <h2>Context &amp; rationale</h2>
+      <p>The template's diagram primitives (<code>.flow</code>, <code>.schema</code>, <code>.tree</code>, <code>.steps</code>, <code>.compare</code>) cover <b>qualitative</b> structure. They can't show <b>quantitative</b> plan content — and that content currently gets buried in prose or tables.</p>
+      <div class="compare">
+        <div class="bad"><div class="ct">Today — quantitative gaps</div><ul>
+          <li><b>Time</b> — which phases overlap, what blocks what, critical path</li>
+          <li><b>Magnitude</b> — relative effort per phase; a before/after metric</li>
+          <li><b>Composition</b> — how a whole splits ("60% is the migration")</li>
+        </ul></div>
+        <div class="good"><div class="ct">After — three primitives</div><ul>
+          <li><code>.gantt</code> → time / overlap / sequencing</li>
+          <li><code>.hbar</code> → magnitude (effort, or before/after)</li>
+          <li><code>.stack</code> → composition of a whole</li>
+        </ul></div>
       </div>
-      <p>{{Body…}}</p>
-      <!-- Use <ul>, <table>, <div class="callout">, <div class="diagram"> as needed. -->
+      <div class="callout warn">
+        <b>The constraint that shapes everything:</b> the page does a hard <code>location.reload()</code> every 4&nbsp;s (<code>plan-template.html:1187</code>). Anything that lays out in JS <i>after</i> first paint re-flows and flickers each reload. So every primitive is <b>static markup with author-baked numbers</b> — Claude computes the widths / column spans at write time; the browser just paints styled elements. No runtime JS, no libraries.
+      </div>
     </section>
 
-    <!-- Optional flow diagram pattern:
-    <div class="diagram">
-      <div class="dg-title">Title</div>
-      <div class="flow">
-        <div class="col"><div class="node q"><b>Input</b><small>note</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node hl"><b>Step</b><small>note</small></div></div>
-        <div class="arrow">→</div>
-        <div class="col"><div class="node ans"><b>Output</b><small>note</small></div></div>
+    <!-- ───────── Reference: scope & cuts ───────── -->
+    <section id="scope" class="card plain">
+      <div class="sec-kicker">Scope</div>
+      <h2>Scope &amp; cuts (YAGNI)</h2>
+      <p>Five primitives were considered; three are in scope. The cuts are deliberate and recorded so they aren't relitigated.</p>
+      <table>
+        <thead><tr><th>Primitive</th><th>Decision</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td><code>.gantt</code></td><td>✅ Build</td><td>The one thing nothing else shows — overlap, sequencing, critical path.</td></tr>
+          <tr><td><code>.hbar</code></td><td>✅ Build</td><td>Two jobs: per-phase effort <i>and</i> before/after metric (perf/migration plans).</td></tr>
+          <tr><td><code>.stack</code></td><td>✅ Build</td><td>Composition of a whole — distinct from <code>.hbar</code>, nearly free.</td></tr>
+          <tr><td><code>.spark</code></td><td>⊘ Cut</td><td>Needs a time-series most plans lack; the progress ring already shows "how far along."</td></tr>
+          <tr><td><code>.matrix</code></td><td>⊘ Cut</td><td>Only useful when a plan <i>is</i> a prioritization exercise. Revisit on real need.</td></tr>
+          <tr><td><code>.dag</code></td><td>⊘ Cut</td><td>Rare at plan scale; <code>.flow</code>/<code>.gantt</code>/<code>.tree</code> cover it. A runtime lib (dagre) would be the only ~100&nbsp;KB inline dep <i>and</i> the only one needing a flicker workaround — bad trade.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ───────── Phase 1 · .hbar ───────── -->
+    <section id="hbar" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 1 · Magnitude</div>
+          <h2><code>.hbar</code> <span class="muted-tail">— labelled bars: effort, or before/after</span></h2>
+        </div>
+        <button class="status" data-track="hbar">To do</button>
       </div>
-    </div>
-    -->
+      <p>Start here — it's the simplest and proves the static-markup model. A standalone block (no <code>.diagram</code> wrapper, like <code>.compare</code>): rows of a left label, a track, and a <code>.bar</code> sized by inline <code>width:%</code>, with the value at the bar's end.</p>
+      <ol class="steps" data-steps="hbar">
+        <li><b>Add CSS to <code>&lt;style&gt;</code>.</b> <code>.hbar</code> (rows grid), <code>.hbar .row</code>, <code>.lbl</code>, <code>.track</code>, <code>.bar</code>; colors from <code>--accent</code> / <code>--muted</code>; the value label inline at bar end.</li>
+        <li><b>Single-series variant.</b> One bar per row = per-phase effort/size. Author writes <code>style="width:62%"</code> as a fraction of the row max.</li>
+        <li><b>Two-series variant.</b> <code>.bar.before</code> (muted) + <code>.bar.after</code> (accent) stacked in one row, so shrink/growth reads at a glance.</li>
+        <li><b>Verify in isolation.</b> Render both variants; check light/dark + narrow viewport before moving on.</li>
+      </ol>
+      <div class="callout"><b>Authoring contract:</b> widths are percentages of the row's own max value, baked in by the author. No JS reads the data.</div>
+    </section>
 
-    <!-- Optional schema/table-model pattern:
-    <div class="diagram">
-      <div class="dg-title">table_name</div>
-      <div class="schema">
-        <div class="row"><span class="col-name">column</span><span class="col-type">type</span><span class="col-note">note</span></div>
+    <!-- ───────── Phase 2 · .stack ───────── -->
+    <section id="stack" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 2 · Composition</div>
+          <h2><code>.stack</code> <span class="muted-tail">— a 100% bar split into segments</span></h2>
+        </div>
+        <button class="status" data-track="stack">To do</button>
       </div>
-    </div>
-    -->
+      <p>One horizontal bar whose children are tinted segments. Uses flexbox so the author writes <b>raw values</b> as <code>flex:&lt;n&gt;</code> — flexbox normalizes to proportions, so no percentage math is needed.</p>
+      <ol class="steps" data-steps="stack">
+        <li><b>Add CSS.</b> <code>.stack</code> (flex row, rounded, overflow-hidden), <code>.stack .seg</code> tinted from the accent palette (<code>--accent</code>, <code>--accent-2</code>, <code>--cyan</code>, <code>--green</code>, <code>--amber</code>), plus a <code>.legend</code> row mapping colour → label → value.</li>
+        <li><b>Segment authoring.</b> Each <code>.seg style="flex:60"</code>; small segments still show a sliver. Document a 2–6 segment sweet spot — beyond that, use a table.</li>
+        <li><b>Legend.</b> Reuse the existing <code>.legend</code> styling so it themes consistently.</li>
+        <li><b>Verify.</b> 3-segment example, light/dark, narrow viewport.</li>
+      </ol>
+    </section>
 
-    <!-- Optional numbered-steps pattern (procedures / ordered work):
-    <ol class="steps">
-      <li><b>Step title.</b> What happens, files touched, etc.</li>
-      <li><b>Next step.</b> …</li>
-    </ol>
-    -->
-
-    <!-- Optional comparison pattern (before/after, option A vs B, trade-offs):
-    <div class="compare">
-      <div class="bad"><div class="ct">Before</div><ul><li>…</li></ul></div>
-      <div class="good"><div class="ct">After</div><ul><li>…</li></ul></div>
-    </div>
-    (use .pick to highlight a chosen option)
-    -->
-
-    <!-- Optional tree pattern (file structure / decomposition):
-    <div class="diagram">
-      <div class="dg-title">repo layout</div>
-      <div class="tree"><span class="dir">lib/</span>
-├─ <span class="nm">search.ts</span>      <small>pgvector similarity</small>
-├─ <span class="dir">tools/</span>
-│  └─ <span class="nm">index.ts</span>    <small>tool registry</small>
-└─ <span class="nm">prisma.ts</span></div>
-    </div>
-    -->
-
-    <!-- Optional .hbar pattern — magnitude. SINGLE series = effort/size per row.
-         Set each .bar width:% of the row's max value (compute it at authoring time).
-    <div class="hbar">
-      <div class="row"><div class="lbl">Auth</div>
-        <div class="bars"><div class="barwrap"><div class="bar" style="width:38%"></div><span class="val">3d</span></div></div></div>
-      <div class="row"><div class="lbl">Data model</div>
-        <div class="bars"><div class="barwrap"><div class="bar" style="width:100%"></div><span class="val">8d</span></div></div></div>
-      <div class="row"><div class="lbl">UI</div>
-        <div class="bars"><div class="barwrap"><div class="bar" style="width:25%"></div><span class="val">2d</span></div></div></div>
-    </div>
-    -->
-
-    <!-- Optional .hbar pattern — TWO series = before / after a metric (.bar.before muted, .bar.after accent).
-    <div class="hbar">
-      <div class="row"><div class="lbl">Bundle</div><div class="bars">
-        <div class="barwrap"><span class="ser">before</span><div class="bar before" style="width:100%"></div><span class="val">2.4 MB</span></div>
-        <div class="barwrap"><span class="ser">after</span><div class="bar after" style="width:24%"></div><span class="val">580 KB</span></div>
-      </div></div>
-      <div class="row"><div class="lbl">p95 latency</div><div class="bars">
-        <div class="barwrap"><span class="ser">before</span><div class="bar before" style="width:100%"></div><span class="val">840 ms</span></div>
-        <div class="barwrap"><span class="ser">after</span><div class="bar after" style="width:23%"></div><span class="val">190 ms</span></div>
-      </div></div>
-    </div>
-    -->
-
-    <!-- Optional .stack pattern — composition of a whole (flex:<n> = raw value; pick palette colours).
-    <div class="stack">
-      <div class="seg" style="flex:60; background:var(--accent)">Migration 60%</div>
-      <div class="seg" style="flex:25; background:var(--accent-2)">API 25%</div>
-      <div class="seg" style="flex:15; background:var(--cyan)">UI 15%</div>
-    </div>
-    <div class="legend">
-      <span><i style="background:var(--accent)"></i> Migration · 60%</span>
-      <span><i style="background:var(--accent-2)"></i> API · 25%</span>
-      <span><i style="background:var(--cyan)"></i> UI · 15%</span>
-    </div>
-    -->
-
-    <!-- Optional .gantt pattern — phases across time. Set --cols to the number of time units;
-         place each .gbar with grid-column:<start>/<end> (1-based time units). .gbar.crit = critical path.
-    <div class="diagram">
-      <div class="dg-title">rollout — 5 weeks</div>
-      <div class="gantt" style="--cols:5">
-        <div class="corner"></div>
-        <div class="g-head"><span class="g-colhead">Wk1</span><span class="g-colhead">Wk2</span><span class="g-colhead">Wk3</span><span class="g-colhead">Wk4</span><span class="g-colhead">Wk5</span></div>
-        <div class="g-task">Schema</div>    <div class="g-row"><div class="gbar crit" style="grid-column:1/2">1w</div></div>
-        <div class="g-task">Backfill</div>  <div class="g-row"><div class="gbar" style="grid-column:2/4">2w</div></div>
-        <div class="g-task">Dual-write</div><div class="g-row"><div class="gbar" style="grid-column:3/5">2w</div></div>
-        <div class="g-task">Cutover</div>   <div class="g-row"><div class="gbar crit" style="grid-column:5/6">1w</div></div>
+    <!-- ───────── Phase 3 · .gantt ───────── -->
+    <section id="gantt" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 3 · Time</div>
+          <h2><code>.gantt</code> <span class="muted-tail">— phases across time; the most complex</span></h2>
+        </div>
+        <button class="status" data-track="gantt">To do</button>
       </div>
-    </div>
-    -->
+      <p>Wrapped in the standard <code>.diagram</code> + <code>.dg-title</code>. A CSS grid with a leading label column plus N time columns; each task is a <code>.gbar</code> placed by an inline <code>grid-column: start / end</code>. Overlap and sequencing become visible because bars share the same column axis.</p>
+      <ol class="steps" data-steps="gantt">
+        <li><b>Add CSS.</b> <code>.gantt</code> (grid, <code>grid-template-columns</code> = label + repeat(N)), header row of column labels, <code>.gtask</code> label cells, <code>.gbar</code> with rounded fill + inline duration text. Optional <code>data-accent</code> to mark the critical path.</li>
+        <li><b>Placement convention.</b> Author writes <code>style="grid-column: 2 / 5"</code> per bar. Document the "column = time unit" rule and a worked 5-task example with one overlap.</li>
+        <li><b>Overflow.</b> Wrap in an <code>overflow-x:auto</code> container so a wide chart scrolls inside its own box and never causes horizontal <i>page</i> scroll.</li>
+        <li><b>Verify.</b> 5 tasks incl. one overlap + one critical-path tint; light/dark; narrow viewport scrolls within the box.</li>
+      </ol>
+      <div class="callout warn"><b>Watch:</b> the gantt is the one most likely to push page width. The <code>overflow-x:auto</code> wrapper is mandatory, matching how other wide content is handled.</div>
+    </section>
 
-    <!-- ───────── Example REFERENCE sections (no tracking) ───────── -->
+    <!-- ───────── Phase 4 · Documentation ───────── -->
+    <section id="docs" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 4 · Docs</div>
+          <h2>Documentation <span class="muted-tail">— make the primitives discoverable</span></h2>
+        </div>
+        <button class="status" data-track="docs">To do</button>
+      </div>
+      <p>Three coordinated doc edits so future plans actually use these — and use them <i>appropriately</i>.</p>
+      <ol class="steps" data-steps="docs">
+        <li><b>Cheatsheet comment.</b> Add a "Quantitative" group to the top-of-file comment (<code>plan-template.html:21-32</code>), one line each.</li>
+        <li><b>In-body example patterns.</b> Drop a copy-paste-ready commented block per primitive near the existing examples (<code>~:515-560</code>), with realistic baked numbers.</li>
+        <li><b>SKILL.md table.</b> Add the three to the Diagrams table (<code>SKILL.md:58-66</code>) with a one-line <i>when to use</i> and the honest <i>when not to</i> (the YAGNI filter), so plans don't sprout charts gratuitously.</li>
+      </ol>
+    </section>
+
+    <!-- ───────── Phase 5 · Verify & sync ───────── -->
+    <section id="verify-sync" class="card phase">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 5 · Proof &amp; rollout</div>
+          <h2>Verify &amp; sync <span class="muted-tail">— visual proof, then propagate</span></h2>
+        </div>
+        <button class="status" data-track="verify-sync">To do</button>
+      </div>
+      <p>This is presentation markup, so verification is visual; then propagate the change to the two mirrors.</p>
+      <ol class="steps" data-steps="verify-sync">
+        <li><b>Build a throwaway exercise plan</b> using all three (single + dual <code>.hbar</code>, a 5-task <code>.gantt</code> with overlap, a 3-segment <code>.stack</code>).</li>
+        <li><b>Open &amp; observe</b> in the plans Chrome instance: renders in <b>light and dark</b>; <b>no flicker</b> across ≥2 reloads; <b>no horizontal page scroll</b>; holds at a narrow viewport; existing primitives + tracker unaffected.</li>
+        <li><b>Sync mirrors.</b> Copy to the installed <code>~/.claude/skills/rich-html-plans/</code> and port to the <code>Quadshift/ai-library</code> mirror.</li>
+      </ol>
+      <div class="callout ok"><b>Done when:</b> all three render correctly in both themes with no flicker / no page-scroll, docs updated, and both mirrors carry the change.</div>
+    </section>
+
+    <!-- ───────── Reference sections (no tracking) ───────── -->
     <section id="critical" class="card plain">
       <div class="sec-kicker">Map</div>
       <h2>Critical files</h2>
-      <ul><li>…</li></ul>
+      <div class="diagram">
+        <div class="dg-title">what changes</div>
+        <div class="tree"><span class="dir">rich-html-plans/</span>            <small>source of truth (this repo)</small>
+├─ <span class="dir">assets/</span>
+│  └─ <span class="nm">plan-template.html</span>  <small>+3 CSS blocks, +3 example comments, cheatsheet</small>
+└─ <span class="nm">SKILL.md</span>             <small>Diagrams table: +3 rows + when-not-to</small>
+
+<span class="dir">~/.claude/skills/rich-html-plans/</span>  <small>installed copy — sync in Phase 5</small>
+<span class="dir">Quadshift/ai-library</span>            <small>mirror — port in Phase 5</small></div>
+      </div>
+      <p class="muted-tail">All edits land inside the existing <code>&lt;style&gt;</code> block and comment regions — no changes to the JS, the tracker, or any existing primitive. Pure addition.</p>
     </section>
 
     <section id="verify" class="card plain">
       <div class="sec-kicker">Proof</div>
-      <h2>Verification</h2>
-      <ul><li>…</li></ul>
+      <h2>Acceptance checks</h2>
+      <ul>
+        <li>✓ All three render correctly in <b>both light and dark</b> (toggle).</li>
+        <li>✓ <b>No flicker</b> across at least two 4s reloads (the core constraint).</li>
+        <li>✓ <b>No horizontal page scroll</b> — a wide <code>.gantt</code> scrolls within its own box.</li>
+        <li>✓ Layout holds at a <b>narrow viewport</b>.</li>
+        <li>✓ <code>.hbar</code> single + dual series; <code>.stack</code> 3 segments; <code>.gantt</code> 5 tasks with one overlap + critical-path tint.</li>
+        <li>✓ Existing primitives + progress tracker <b>unaffected</b>.</li>
+        <li>✓ Both mirrors carry the change.</li>
+      </ul>
     </section>
 
     <!-- Activity log — auto-rendered from #plan-state `log`; self-hides when the log is empty. -->
@@ -671,7 +676,7 @@
       <h2>Activity log</h2>
     </section>
 
-    <footer>{{TITLE}}</footer>
+    <footer>Quantitative Plan Primitives · rich-html-plans</footer>
 
   </main>
 </div>
@@ -680,15 +685,35 @@
      • Set each tracked id to "todo" | "doing" | "done". Keys MUST match the `ids` array.
      • The page auto-refreshes every few seconds, so edits here show up on their own. -->
 <script id="plan-state" type="application/json">
-{ "status": {} }
+{
+  "status": { "hbar": "done", "stack": "done", "gantt": "done", "docs": "done", "verify-sync": "done" },
+  "log": [
+    { "t": "Phase 1", "text": ".hbar — single + before/after series" },
+    { "t": "Phase 2", "text": ".stack — tinted segments + legend" },
+    { "t": "Phase 3", "text": ".gantt — grid timeline, overlap + critical path" },
+    { "t": "Phase 4", "text": "cheatsheet, in-body examples, SKILL.md table updated" },
+    { "t": "Phase 5", "text": "visually verified (headless screenshot, both themes); installed copy synced. ai-library mirror PR still pending." }
+  ],
+  "deepLinks": {
+    "cwd": "C:/Users/gbath.SURREY/Desktop/html-plan-skill",
+    "planPath": "Plans/quantitative-plan-primitives-plan.html"
+  },
+  "actions": {
+    "hbar":        { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 1 (.hbar) per the design spec docs/superpowers/specs/2026-06-19-quantitative-plan-primitives-design.md." },
+    "stack":       { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 2 (.stack)." },
+    "gantt":       { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 3 (.gantt)." },
+    "docs":        { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 4 (documentation)." },
+    "verify-sync": { "start": "Open the plan at Plans/quantitative-plan-primitives-plan.html and implement Phase 5 (verify and sync the two mirrors)." }
+  }
+}
 </script>
 
 <script>
 (function () {
   // ── Config ──
-  var TKEY = '{{KEBAB_TITLE}}-theme';     // localStorage: theme preference
-  var SKEY = '{{KEBAB_TITLE}}-scroll';    // sessionStorage: scroll Y across reload
-  var ids = ['sectionA' /*, 'sectionB', ... */]; // EXACTLY the tracked section ids
+  var TKEY = 'quantitative-plan-primitives-theme';     // localStorage: theme preference
+  var SKEY = 'quantitative-plan-primitives-scroll';    // sessionStorage: scroll Y across reload
+  var ids = ['hbar', 'stack', 'gantt', 'docs', 'verify-sync']; // EXACTLY the tracked section ids
   var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
   var RELOAD_MS = 4000;
 

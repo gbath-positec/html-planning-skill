@@ -186,7 +186,7 @@ Add this under the top-level object in either `~/.claude/settings.json`
           {
             "type": "command",
             "shell": "bash",
-            "command": "grep -iqE \"\\bplan(s|ning|ned)?\\b\" && printf \"%s\" \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"UserPromptSubmit\\\",\\\"additionalContext\\\":\\\"REMINDER: This request involves a plan. When you finalize or present any implementation/project plan this turn, you MUST render it using the rich-html-plans skill (Skill tool, skill=rich-html-plans) — do not output the plan as plain markdown.\\\"}}\" || true",
+            "command": "node -e 'let d=\"\";process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{try{process.stdout.write(JSON.parse(d).prompt||\"\")}catch(e){}})' | grep -iqE \"\\b(plans?|planning|planned|roadmaps?|specs?|design[- ]?docs?|write[- ]?ups?)\\b\" && printf \"%s\" \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"UserPromptSubmit\\\",\\\"additionalContext\\\":\\\"REMINDER: This request involves a plan. When you finalize or present any implementation/project plan this turn, you MUST render it using the rich-html-plans skill (Skill tool, skill=rich-html-plans) — do not output the plan as plain markdown.\\\"}}\" || true",
             "statusMessage": "Checking for plan request..."
           }
         ]
@@ -196,12 +196,23 @@ Add this under the top-level object in either `~/.claude/settings.json`
 }
 ```
 
-> This hook uses `grep` (no extra dependencies). On Windows it relies on the Git
-> Bash that ships with Claude Code. If you already have a `hooks` key in your
-> settings, merge the `UserPromptSubmit` entry in rather than replacing the whole
-> block. It matches the word "plan" anywhere in your message, so it can fire on the
-> occasional false positive (e.g. "explain the plan skill") — the reminder is
-> harmless when it does.
+> **Why it's written this way — two gotchas worth knowing:**
+>
+> 1. **Match the prompt, not the whole event.** A `UserPromptSubmit` hook receives a
+>    JSON event on stdin (`{"prompt": "...", "cwd": "...", ...}`), not just your typed
+>    text. A bare `grep` reads *all* of stdin — so it also matches your working-directory
+>    path. If your repo folder happens to contain "plan" (e.g. `html-plan-skill`), the
+>    hook fires on **every** prompt. The `node -e '…JSON.parse(d).prompt…'` step extracts
+>    just the prompt first, so only what you actually typed is tested. Node is used
+>    because Claude Code already runs on it — no extra dependency to install (unlike
+>    `jq`, which isn't on Windows by default).
+> 2. **Broadened keywords.** It matches `plan / plans / planning / planned`, plus
+>    `roadmap / spec / design doc / write-up` — so synonyms still trigger the skill.
+>    Word boundaries (`\b…\b`) keep it from firing on substrings like "specific".
+>
+> If you already have a `hooks` key in your settings, merge the `UserPromptSubmit`
+> entry in rather than replacing the whole block. On Windows the hook relies on the
+> Git Bash that ships with Claude Code.
 
 After editing settings, open `/hooks` once or restart Claude Code so the new hook
 loads.
@@ -220,6 +231,15 @@ you just ask for them:
   auto-registers on the first interactive `claude` run. Buttons work from the
   opened `file://` doc — GitHub strips the scheme, so they're not for pasting into
   a README.
+
+  > **Gotcha — invalid wildcard permission rules halt the new session.** A deep link
+  > opens a *fresh* Claude Code session that loads your `settings.json`. Current
+  > Claude Code rejects **bare** wildcard permission rules like `Bash(*)`, `Edit(*)`,
+  > or `Read(*)` ("wildcard is not allowed"), and the new session stops on its first
+  > tool call until you fix them. The allow-all form is just the **bare tool name** —
+  > `"Bash"`, `"Edit"`, `"Read"` — and prefix rules like `"Bash(npm run *)"` are fine.
+  > If "Continue plan" flashes open and stalls, check your allow-list for `Tool(*)`
+  > entries.
 - **The plan-aware SessionStart hook** (`rich-html-plans/assets/session-start-hook.json`)
   is installed once per repo. Claude merges it into the repo's
   `.claude/settings.json` when you ask it to set up plan-aware sessions; from then
