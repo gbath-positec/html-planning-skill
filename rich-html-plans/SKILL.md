@@ -41,9 +41,34 @@ This **complements** the plan-mode markdown plan file — it does not replace it
 5. **Ensure the plan-aware SessionStart hook is installed** (one-time per repo). This makes every future Claude session in this repo — including ones the plan's "⏩ Continue plan" deep link opens — wake up already knowing the newest plan's `#plan-state`. Read `assets/session-start-hook.json` from this skill directory and **merge** its `hooks.SessionStart` entry into the repo's `.claude/settings.json` (create the file if missing; preserve any existing settings; if a SessionStart hook with this same command is already present, do nothing — it's idempotent). The hook is self-contained PowerShell (no `jq`/node), auto-discovers the newest `Plans/*-plan.html`, and **stays silent when that plan is 100% done**, so it never nags on finished work. **First-time caveat:** a hook written into a brand-new `.claude/settings.json` only takes effect after the user opens `/hooks` once or restarts Claude Code — the settings watcher doesn't pick up a `.claude/` directory that had no settings file when the session started. Say so when you install it the first time. See **Plan-aware sessions** below.
 
 6. **Open in Chrome — dedicated "plans" window, new tab — and VERIFY it actually surfaced.** This workspace is Windows. All plans open in a **dedicated Chrome instance** pinned to its own profile directory, so every plan lands in the same window: the first plan of a session opens that window, each later plan opens as a **new tab** in it, and it never mixes into your regular browsing windows. Use the **PowerShell tool** with `Start-Process chrome` + a fixed `--user-data-dir`. Do NOT use `cmd /c start chrome <url>`.
+
+   **If the live dashboard is set up, also keep it open.** The block below is **opt-in and a no-op** unless the registry `~/.claude/plans-index.json` exists. When it does, it (a) **ensures the dashboard server is running on every open** — probing `http://localhost:7878/` and starting the bundled server if it's down (idempotent: nothing is spawned if it's already up) — and (b) opens the dashboard **tab** only when the dedicated plans window isn't already up, so tabs never stack. Replace `<SKILL-DIR>` with this skill's own directory (the `assets/plans-server.js` next to this file). `7878` is the documented default port; if a custom port was used at setup, adjust it here (the skill reads no configured port).
    ```powershell
    $url = "file:///<ABSOLUTE/forward-slash/path>.html"
    $planProfile = "$env:USERPROFILE\.plan-chrome"   # dedicated profile dir for plans (reused across plans)
+
+   # ── Live dashboard (opt-in): ensure server up on EVERY open; open its tab only on a fresh window ──
+   $dashOptedIn = Test-Path "$env:USERPROFILE\.claude\plans-index.json"   # no registry → whole block is a no-op
+   $dashUp = $false
+   if ($dashOptedIn) {
+     $dashUrl = "http://localhost:7878/"            # 7878 = documented default; adjust if customised at setup
+     function Test-Dash { try { Invoke-WebRequest -UseBasicParsing -Uri $dashUrl -TimeoutSec 1 | Out-Null; $true } catch { $false } }
+     $dashUp = Test-Dash
+     if (-not $dashUp) {                            # down → start the bundled server hidden, then re-probe ≤3s
+       $srv = "<SKILL-DIR>\assets\plans-server.js"
+       Start-Process -WindowStyle Hidden node -ArgumentList "`"$srv`"", 7878
+       foreach ($i in 1..6) { Start-Sleep -Milliseconds 500; if (Test-Dash) { $dashUp = $true; break } }
+     }
+   }
+   # Is the dedicated plans window already up? (decides whether to open the dashboard TAB — never stack)
+   $planChromeUp = [bool](Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" -ErrorAction SilentlyContinue |
+     Where-Object { $_.CommandLine -like "*--user-data-dir=$planProfile*" })
+   # Fresh window + dashboard reachable → open dashboard first so the plan ends up the focused tab
+   if ($dashUp -and -not $planChromeUp) {
+     Start-Process chrome -ArgumentList "--user-data-dir=$planProfile", $dashUrl
+     Start-Sleep -Seconds 1
+   }
+
    Start-Process chrome -ArgumentList "--user-data-dir=$planProfile", $url
    Start-Sleep -Seconds 2
    $p = Get-Process chrome -ErrorAction SilentlyContinue

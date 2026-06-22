@@ -364,6 +364,11 @@
   .notify-btn.blocked { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
   .notify-btn[disabled] { opacity: .5; cursor: default; }
 
+  /* ── Dashboard link (origin-aware fallback; revealed by JS only when the dashboard is reachable) ── */
+  .dash-link { display: block; text-align: center; text-decoration: none; margin-top: 10px; }
+  .dash-link:hover { text-decoration: none; color: var(--text); border-color: var(--border); }
+  .dash-link[hidden] { display: none; }
+
   /* ── Deep-link action buttons (claude-cli://) — injected by JS when #plan-state.deepLinks is set ── */
   .cc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
   .cc-actions.hero-actions { margin: 18px 0 0; }
@@ -551,6 +556,8 @@
 
     <button class="theme-btn" id="theme-btn">◐ Toggle light / dark</button>
     <button class="notify-btn" id="notify-btn">🔔 Notify me</button>
+    <!-- Origin-aware link to the live dashboard; hidden until JS confirms it's reachable. -->
+    <a class="theme-btn dash-link" id="dash-link" hidden>⊞ Open dashboard</a>
   </aside>
 
   <!-- ───────── Main ───────── -->
@@ -1278,6 +1285,24 @@
       sp.style.setProperty('--my', e.clientY + 'px');
       sp.classList.add('on');
     }, { passive: true });
+  })();
+
+  // ── Dashboard link (origin-aware) — opt-in fallback to the live plans dashboard ──
+  // Served over http(s) (e.g. phone via Tailscale): the dashboard IS this origin → link "/", always shown.
+  // Local file://: the dashboard is http://localhost:7878/ → no-cors probe; reveal only if it answers.
+  (function () {
+    var link = document.getElementById('dash-link');
+    if (!link) return;
+    var DASH_LOCAL = 'http://localhost:7878/';   // documented default port (matches setup-dashboard.ps1)
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+      link.href = '/'; link.removeAttribute('hidden'); return;     // dashboard served this page → home is "/"
+    }
+    if (location.protocol !== 'file:' || !window.fetch) return;     // unknown origin → stay hidden
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 1200);
+    fetch(DASH_LOCAL, { mode: 'no-cors', signal: ctrl ? ctrl.signal : undefined })
+      .then(function () { clearTimeout(to); link.href = DASH_LOCAL; link.removeAttribute('hidden'); })
+      .catch(function () { clearTimeout(to); link.setAttribute('hidden', ''); });
   })();
 
   // ── Auto-refresh + auto-focus on the in-progress section ──

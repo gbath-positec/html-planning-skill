@@ -364,6 +364,11 @@
   .notify-btn.blocked { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
   .notify-btn[disabled] { opacity: .5; cursor: default; }
 
+  /* ── Dashboard link (origin-aware fallback; revealed by JS only when the dashboard is reachable) ── */
+  .dash-link { display: block; text-align: center; text-decoration: none; margin-top: 10px; }
+  .dash-link:hover { text-decoration: none; color: var(--text); border-color: var(--border); }
+  .dash-link[hidden] { display: none; }
+
   /* ── Deep-link action buttons (claude-cli://) — injected by JS when #plan-state.deepLinks is set ── */
   .cc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
   .cc-actions.hero-actions { margin: 18px 0 0; }
@@ -531,6 +536,7 @@
     <nav class="toc" id="toc">
       <!-- One link per TRACKED section. data-track must match the section id + pill. -->
       <a href="#phase1" data-track="phase1"><span class="mk"></span>Edit step 6</a>
+      <a href="#tpl" data-track="tpl"><span class="mk"></span>Template link</a>
       <a href="#phase2" data-track="phase2"><span class="mk"></span>Install &amp; verify</a>
       <a href="#phase3" data-track="phase3"><span class="mk"></span>Mirror PR</a>
     </nav>
@@ -553,6 +559,8 @@
 
     <button class="theme-btn" id="theme-btn">◐ Toggle light / dark</button>
     <button class="notify-btn" id="notify-btn">🔔 Notify me</button>
+    <!-- Origin-aware link to the live dashboard; hidden until JS confirms it's reachable. -->
+    <a class="theme-btn dash-link" id="dash-link" hidden>⊞ Open dashboard</a>
   </aside>
 
   <!-- ───────── Main ───────── -->
@@ -561,11 +569,12 @@
     <header class="hero">
       <div class="eyebrow">Implementation Plan</div>
       <h1>Auto-open the dashboard with plans</h1>
-      <p>When the skill opens a plan in Chrome, also open the live dashboard — but only if the dedicated plans-Chrome window isn't already up. One change to <code>SKILL.md</code> step 6; no code touched.</p>
+      <p>When the skill opens a plan in Chrome, also open the live dashboard — and if the dashboard server is down, <strong>start it first</strong> so the dashboard always appears. Only when the dedicated plans-Chrome window isn't already up. One change to <code>SKILL.md</code> step 6; no code touched.</p>
       <div class="chips">
         <span class="chip">✦ <b>1 file</b> — SKILL.md step 6</span>
         <span class="chip">✦ window-liveness via <b>CIM</b></span>
-        <span class="chip">✦ dashboard <b>reachability</b> guard</span>
+        <span class="chip">✦ <b>auto-start</b> server if down</span>
+        <span class="chip">✦ opt-in guard — <b>registry</b> must exist</span>
         <span class="chip">✦ once per <b>plans-window</b> lifetime</span>
       </div>
     </header>
@@ -573,8 +582,9 @@
     <!-- Roadmap: one node per tracked section, data-track must match. -->
     <div class="roadmap" id="roadmap">
       <a class="rm-node" href="#phase1" data-track="phase1"><div class="rm-num">1</div><div class="rm-label">Edit step 6</div></a>
-      <a class="rm-node" href="#phase2" data-track="phase2"><div class="rm-num">2</div><div class="rm-label">Install &amp; verify</div></a>
-      <a class="rm-node" href="#phase3" data-track="phase3"><div class="rm-num">3</div><div class="rm-label">Mirror PR</div></a>
+      <a class="rm-node" href="#tpl" data-track="tpl"><div class="rm-num">2</div><div class="rm-label">Template link</div></a>
+      <a class="rm-node" href="#phase2" data-track="phase2"><div class="rm-num">3</div><div class="rm-label">Install &amp; verify</div></a>
+      <a class="rm-node" href="#phase3" data-track="phase3"><div class="rm-num">4</div><div class="rm-label">Mirror PR</div></a>
     </div>
     <div class="legend">
       <span><i style="background:var(--border)"></i> To do</span>
@@ -587,36 +597,56 @@
     <section id="how" class="card plain">
       <div class="sec-kicker">Behaviour</div>
       <h2>How it works</h2>
-      <p>The skill's step 6 already opens every plan into a <strong>dedicated Chrome instance</strong> pinned to <code>--user-data-dir=%USERPROFILE%\.plan-chrome</code>. We add a short conditional <em>in front of</em> that open: detect whether that window is already running, and if not, open the dashboard tab first.</p>
+      <p>The skill's step 6 already opens every plan into a <strong>dedicated Chrome instance</strong> pinned to <code>--user-data-dir=%USERPROFILE%\.plan-chrome</code>. We add a short conditional <em>in front of</em> that open. The two concerns are <strong>decoupled</strong>: <em>ensuring the server is up</em> runs on <strong>every</strong> plan open (cheap probe, start only if down), while <em>opening the dashboard tab</em> runs only on a fresh window (so tabs never stack).</p>
 
       <div class="diagram">
         <div class="dg-title">open-plan decision flow</div>
         <div class="flow">
           <div class="col"><div class="node q"><b>Plan ready</b><small>file:// url</small></div></div>
           <div class="arrow">→</div>
-          <div class="col"><div class="node hl"><b>.plan-chrome running?</b><small>CIM cmdline match</small></div></div>
+          <div class="col"><div class="node hl"><b>opted in?</b><small>registry exists</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>ensure server</b><small>EVERY open · probe / start</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node hl"><b>window fresh?</b><small>CIM cmdline match</small></div></div>
           <div class="arrow">→</div>
           <div class="col">
-            <div class="node"><b>NO → fresh window</b><small>dashboard up? → open it first</small></div>
-            <div class="node"><b>YES → window up</b><small>skip dashboard</small></div>
+            <div class="node"><b>FRESH → open dash tab</b><small>only if server reachable</small></div>
+            <div class="node"><b>UP → skip tab</b><small>no stacking</small></div>
           </div>
           <div class="arrow">→</div>
           <div class="col"><div class="node ans"><b>Open plan tab</b><small>becomes focused tab</small></div></div>
         </div>
       </div>
 
+      <div class="diagram">
+        <div class="dg-title">ensure-server sub-flow (fresh window + dashboard opted in)</div>
+        <div class="flow">
+          <div class="col"><div class="node q"><b>Probe :7878</b><small>IWR, 1s timeout</small></div></div>
+          <div class="arrow">→</div>
+          <div class="col">
+            <div class="node ans"><b>reachable</b><small>use it as-is</small></div>
+            <div class="node hl"><b>down → spawn</b><small>node plans-server.js 7878 (hidden)</small></div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="col"><div class="node"><b>re-probe (≤3s)</b><small>up? open dash tab · still down? skip</small></div></div>
+        </div>
+      </div>
+
       <div class="compare">
         <div class="bad"><div class="ct">Before</div><ul>
           <li>Opening a plan only opens the plan.</li>
-          <li>Dashboard must be opened by hand each session.</li>
+          <li>Dashboard must be opened — and the server started — by hand each session.</li>
+          <li>Server dies after logon → building a plan shows nothing.</li>
         </ul></div>
         <div class="good"><div class="ct">After</div><ul>
-          <li>First plan of a session opens dashboard + plan.</li>
-          <li>Later plans just add a tab — <strong>no dashboard stacking</strong>.</li>
+          <li>First plan of a session starts the server (if down) + opens dashboard + plan.</li>
+          <li>Later plans just add a tab — <strong>no dashboard stacking</strong>, no duplicate server.</li>
         </ul></div>
       </div>
 
-      <div class="callout">Net effect: the dashboard opens <strong>once per plans-window lifetime</strong>. Tradeoff (accepted): closing <em>only</em> the dashboard tab while keeping the window won't reopen it until the next fresh window.</div>
+      <div class="callout">Net effect: the dashboard opens <strong>once per plans-window lifetime</strong>, self-healing the server when it's down. Tradeoff (accepted): closing <em>only</em> the dashboard tab while keeping the window won't reopen it until the next fresh window.</div>
+      <div class="callout warn"><strong>Opt-in preserved.</strong> The server is only started when the registry <code>~/.claude/plans-index.json</code> exists — i.e. the user ran the dashboard setup. Anyone who never opted in still sees a plain plan-only open, no localhost tab, no spawned process.</div>
     </section>
 
     <!-- ───────── Phase 1 ───────── -->
@@ -624,15 +654,16 @@
       <div class="sec-head">
         <div class="titles">
           <div class="sec-kicker">Phase 1 · The change</div>
-          <h2>Edit SKILL.md step 6 <span class="muted-tail">— conditional dashboard open</span></h2>
+          <h2>Edit SKILL.md step 6 <span class="muted-tail">— ensure-server + conditional dashboard open</span></h2>
         </div>
         <button class="status" data-track="phase1">To do</button>
       </div>
-      <p>Replace the single <code>Start-Process chrome</code> open in step 6 with a guarded version. Three guards, all simple:</p>
+      <p>Replace the single <code>Start-Process chrome</code> open in step 6 with a guarded version that <strong>ensures the dashboard server is up on every open</strong>, and opens the dashboard tab only on a fresh window. Guards, all simple:</p>
       <ol class="steps" data-steps="phase1">
-        <li><b>Window-liveness.</b> <code>Get-CimInstance Win32_Process -Filter "Name='chrome.exe'"</code>, match <code>--user-data-dir=...\.plan-chrome</code> on <code>CommandLine</code>. This is the "is the plans window already up?" signal.</li>
-        <li><b>Dashboard reachability.</b> Only when the window is fresh, probe <code>http://localhost:7878/</code> with a 1s <code>Invoke-WebRequest</code> — the dashboard is optional, so never open a dead localhost tab.</li>
-        <li><b>Order.</b> Open the dashboard first, then the plan, so the plan ends up the focused tab. Keep the existing verify-it-surfaced check unchanged.</li>
+        <li><b>Opt-in guard.</b> Only run dashboard logic when the registry <code>~/.claude/plans-index.json</code> exists. No registry → the user never set up the dashboard → open the plan only (today's behaviour). Keeps the feature off-by-default.</li>
+        <li><b>Ensure server — EVERY open (the fix).</b> Probe <code>http://localhost:7878/</code> with a 1s <code>Invoke-WebRequest</code>. If down, spawn it hidden — <code>Start-Process -WindowStyle Hidden node "&lt;skill-dir&gt;\assets\plans-server.js" 7878</code> — then re-probe with a short bounded wait (≤3s). Idempotent: if already up, the probe succeeds and nothing is spawned. Runs regardless of window state, so a server that died mid-session is restarted.</li>
+        <li><b>Window-liveness (tab gate only).</b> <code>Get-CimInstance Win32_Process -Filter "Name='chrome.exe'"</code>, match <code>--user-data-dir=...\.plan-chrome</code> on <code>CommandLine</code>. Used <em>only</em> to decide whether to open the dashboard <em>tab</em> — fresh window → open it; already up → skip (no tab stacking).</li>
+        <li><b>Order.</b> On a fresh window with the server reachable, open the dashboard tab first, then the plan, so the plan ends up the focused tab. Keep the existing verify-it-surfaced check unchanged. Still-down after start → open the plan only.</li>
         <li><b>Document the port assumption.</b> Note inline that <code>7878</code> is the documented default; a custom port must be adjusted here (the skill reads no configured port).</li>
       </ol>
 
@@ -640,27 +671,63 @@
         <div class="dg-title">new step-6 PowerShell (shape)</div>
         <div class="schema">
           <div class="row"><span class="col-name">$planProfile</span><span class="col-type">path</span><span class="col-note">$env:USERPROFILE\.plan-chrome</span></div>
-          <div class="row"><span class="col-name">$planChromeUp</span><span class="col-type">bool</span><span class="col-note">CIM cmdline contains --user-data-dir=$planProfile</span></div>
-          <div class="row"><span class="col-name">$dashUp</span><span class="col-type">bool</span><span class="col-note">only if !$planChromeUp — IWR localhost:7878, 1s timeout</span></div>
-          <div class="row"><span class="col-name">open order</span><span class="col-type">seq</span><span class="col-note">dashboard (if up &amp; fresh) → plan → verify</span></div>
+          <div class="row"><span class="col-name">$dashOptedIn</span><span class="col-type">bool</span><span class="col-note">Test-Path ~/.claude/plans-index.json — gates everything</span></div>
+          <div class="row"><span class="col-name">$dashUp</span><span class="col-type">bool</span><span class="col-note">EVERY open — IWR :7878 1s; if down → spawn → re-probe ≤3s</span></div>
+          <div class="row"><span class="col-name">$planChromeUp</span><span class="col-type">bool</span><span class="col-note">CIM cmdline contains --user-data-dir=$planProfile — tab gate</span></div>
+          <div class="row"><span class="col-name">open order</span><span class="col-type">seq</span><span class="col-note">dashboard (if $dashUp &amp; fresh window) → plan → verify</span></div>
         </div>
       </div>
-      <div class="callout warn">Doc-only change to the skill: the PowerShell in step 6 is what Claude runs. No edits to <code>plans-server.js</code>, the registry, or the template.</div>
+      <div class="callout warn">Doc-only change to the skill: the PowerShell in step 6 is what Claude runs. No edits to <code>plans-server.js</code>, the registry, or the template — we only <em>launch</em> the existing server.</div>
     </section>
 
-    <!-- ───────── Phase 2 ───────── -->
+    <!-- ───────── Phase 2 · Template link ───────── -->
+    <section id="tpl" class="card phase" data-accent="green">
+      <div class="sec-head">
+        <div class="titles">
+          <div class="sec-kicker">Phase 2 · Template</div>
+          <h2>Origin-aware dashboard link <span class="muted-tail">— sidebar fallback, works on phone too</span></h2>
+        </div>
+        <button class="status" data-track="tpl">To do</button>
+      </div>
+      <p>Add a sidebar button to <code>plan-template.html</code> that links to the dashboard — so even when the tab didn't auto-open (second plan of a session, or you closed it), the dashboard is one click away. The target is <strong>origin-aware</strong> so it works both on the PC (<code>file://</code>) and on the phone (served over Tailscale).</p>
+
+      <div class="diagram">
+        <div class="dg-title">where the dashboard lives, per viewing context</div>
+        <div class="compare">
+          <div class="pick"><div class="ct">PC · file:// origin</div><ul>
+            <li>Dashboard = <code>http://localhost:7878/</code></li>
+            <li>Cross-origin → <strong>probe</strong> it; show link only if it answers.</li>
+          </ul></div>
+          <div class="good"><div class="ct">Phone / served · http(s) origin</div><ul>
+            <li>Page was served by the dashboard at <code>/plan/&lt;id&gt;</code>.</li>
+            <li>Dashboard = <code>/</code> on the <strong>same origin</strong> → guaranteed up, <strong>always show</strong>, no probe.</li>
+          </ul></div>
+        </div>
+      </div>
+
+      <ol class="steps" data-steps="tpl">
+        <li><b>Hidden button in the sidebar.</b> Add <code>&lt;a id="dash-link" class="theme-btn" hidden&gt;⊞ Open dashboard&lt;/a&gt;</code> near the existing theme / notify buttons. Hidden by default — JS sets the href + reveals it.</li>
+        <li><b>Branch on <code>location.protocol</code>.</b> If served over <code>http(s)</code> (phone via Tailscale, or any dashboard view): set <code>href="/"</code> on the same origin and reveal immediately — the server that sent the page is by definition up. No probe, no localhost.</li>
+        <li><b>Probe only on <code>file://</code>.</b> On a local file open, set <code>href="http://localhost:7878/"</code> (port in one <code>DASH_LOCAL</code> constant) and probe it on load + each ~4s refresh; reveal only on success. Cross-origin from <code>file://</code> → <code>fetch(DASH_LOCAL,{mode:'no-cors'})</code> with an <code>AbortController</code> timeout (resolve = up, reject = down), <code>Image</code> fallback. <em>Verify it fires from <code>file://</code> during implementation.</em></li>
+        <li><b>Backport to the open plan.</b> Apply the same button + logic to this plan file so it shows up live in the tab you're watching.</li>
+      </ol>
+      <div class="callout">Complements Phase 1: step 6 keeps the server up and opens the tab on the PC; this link is the in-doc safety net for when the tab isn't there — and the only way to hop back to the dashboard index from a single plan on the phone.</div>
+    </section>
+
+    <!-- ───────── Phase 3 · Deploy ───────── -->
     <section id="phase2" class="card phase" data-accent="green">
       <div class="sec-head">
         <div class="titles">
-          <div class="sec-kicker">Phase 2 · Deploy</div>
-          <h2>Install to <code>~/.claude/skills</code> &amp; verify <span class="muted-tail">— 0 drift</span></h2>
+          <div class="sec-kicker">Phase 3 · Deploy</div>
+          <h2>Install to <code>~/.claude/skills</code> &amp; verify <span class="muted-tail">— 0 drift, both files</span></h2>
         </div>
         <button class="status" data-track="phase2">To do</button>
       </div>
-      <p>Copy the edited <code>SKILL.md</code> into the installed skill dir so the live skill matches the repo, then confirm no drift.</p>
+      <p>Copy <strong>both edited files</strong> into the installed skill dir so the live skill matches the repo, then confirm no drift. (The skill runs from the installed copy, not the repo.)</p>
       <ol class="steps" data-steps="phase2">
         <li><b>Copy SKILL.md</b> from the repo to <code>~/.claude/skills/rich-html-plans/SKILL.md</code>.</li>
-        <li><b>Diff to verify 0 drift</b> between repo and installed copy (the changed file).</li>
+        <li><b>Copy plan-template.html</b> to <code>~/.claude/skills/rich-html-plans/assets/plan-template.html</code>.</li>
+        <li><b>Diff to verify 0 drift</b> between repo and installed copies of both changed files.</li>
       </ol>
     </section>
 
@@ -668,15 +735,15 @@
     <section id="phase3" class="card phase" data-accent="blue">
       <div class="sec-head">
         <div class="titles">
-          <div class="sec-kicker">Phase 3 · Mirror</div>
+          <div class="sec-kicker">Phase 4 · Mirror</div>
           <h2>Open a mirror PR to <code>Quadshift/ai-library</code> <span class="muted-tail">— PR only, never merge</span></h2>
         </div>
         <button class="status" data-track="phase3">To do</button>
       </div>
-      <p>The skill is also published in the private <code>Quadshift/ai-library</code> mirror, so the same SKILL.md edit needs a PR there. <strong>Open the PR but do not merge</strong> — the user merges themselves.</p>
+      <p>The skill is also published in the private <code>Quadshift/ai-library</code> mirror, so the same edits need a PR there. <strong>Open the PR but do not merge</strong> — the user merges themselves.</p>
       <ol class="steps" data-steps="phase3">
-        <li><b>Branch + apply</b> the identical step-6 edit in the mirror repo.</li>
-        <li><b>Open a PR</b> describing the auto-open-dashboard change; leave it for the user to merge.</li>
+        <li><b>Branch + apply</b> the identical edits in the mirror repo — both the step-6 change in <code>SKILL.md</code> and the sidebar link in <code>plan-template.html</code>.</li>
+        <li><b>Open a PR</b> describing the auto-open-dashboard + fallback-link change; leave it for the user to merge.</li>
       </ol>
       <div class="callout warn">Per standing guidance: open mirror PRs, never merge them.</div>
     </section>
@@ -686,9 +753,10 @@
       <div class="sec-kicker">Map</div>
       <h2>Critical files</h2>
       <ul>
-        <li><code>rich-html-plans/SKILL.md</code> — step 6 (the only edit).</li>
-        <li><code>~/.claude/skills/rich-html-plans/SKILL.md</code> — installed copy to sync in Phase 2.</li>
-        <li><em>Untouched:</em> <code>plans-server.js</code>, <code>plans-registry.js</code>, <code>plan-template.html</code>.</li>
+        <li><code>rich-html-plans/SKILL.md</code> — step 6 (Phase 1 edit).</li>
+        <li><code>rich-html-plans/assets/plan-template.html</code> — sidebar dashboard link + probe (Phase 2 edit).</li>
+        <li><code>~/.claude/skills/rich-html-plans/{SKILL.md, assets/plan-template.html}</code> — installed copies to sync in Phase 3.</li>
+        <li><em>Untouched:</em> <code>plans-server.js</code>, <code>plans-registry.js</code>.</li>
       </ul>
     </section>
 
@@ -696,10 +764,14 @@
       <div class="sec-kicker">Proof</div>
       <h2>Verification</h2>
       <ul>
-        <li><strong>Fresh window:</strong> with no <code>.plan-chrome</code> running and the dashboard server up, opening a plan opens dashboard + plan; the plan is focused.</li>
-        <li><strong>Second plan:</strong> with the window already up, opening another plan adds only a plan tab — no duplicate dashboard.</li>
-        <li><strong>Dashboard off:</strong> with the server not running, opening a plan opens only the plan (no dead localhost tab).</li>
-        <li><strong>0 drift:</strong> repo <code>SKILL.md</code> diffs clean against the installed copy.</li>
+        <li><strong>Fresh window, server up:</strong> with no <code>.plan-chrome</code> running and the dashboard server already up, opening a plan opens dashboard + plan; the plan is focused.</li>
+        <li><strong>Fresh window, server down (the fix):</strong> with the registry present but <code>:7878</code> not listening, opening a plan <em>starts</em> the server, then opens dashboard + plan. (This is the case the user hit.)</li>
+        <li><strong>Server dies mid-session:</strong> window already up, server killed, then a new plan is opened → the every-open probe restarts the server (no second tab). This is what "ensure every time" buys.</li>
+        <li><strong>Second plan, server healthy:</strong> window up and server up → adds only a plan tab; probe succeeds so nothing is spawned, no duplicate dashboard.</li>
+        <li><strong>Not opted in:</strong> with no <code>~/.claude/plans-index.json</code>, opening a plan opens only the plan — no probe, no spawn, no localhost tab.</li>
+        <li><strong>Link on PC (file://):</strong> with the server up, the sidebar "⊞ Open dashboard" button appears and points to <code>localhost:7878</code>; with it down, the button stays hidden.</li>
+        <li><strong>Link on phone (served):</strong> viewing a plan at <code>https://&lt;host&gt;/plan/&lt;id&gt;</code>, the button always shows and points to <code>/</code> (the dashboard index) on the same origin.</li>
+        <li><strong>0 drift:</strong> repo <code>SKILL.md</code> + <code>plan-template.html</code> diff clean against the installed copies.</li>
       </ul>
     </section>
 
@@ -719,15 +791,16 @@
      • The page auto-refreshes every few seconds, so edits here show up on their own. -->
 <script id="plan-state" type="application/json">
 {
-  "status": { "phase1": "todo", "phase2": "todo", "phase3": "todo" },
+  "status": { "phase1": "done", "tpl": "done", "phase2": "done", "phase3": "done" },
   "deepLinks": {
     "cwd": "C:/Users/gbath.SURREY/Desktop/html-plan-skill",
     "planPath": "Plans/auto-open-dashboard-plan.html"
   },
   "actions": {
-    "phase1": { "start": "Open the plan at Plans/auto-open-dashboard-plan.html and implement Phase 1: edit rich-html-plans/SKILL.md step 6 to conditionally open the dashboard (window-liveness via CIM + localhost:7878 reachability) before opening the plan tab. Update #plan-state." },
-    "phase2": { "start": "Open the plan at Plans/auto-open-dashboard-plan.html and do Phase 2: copy SKILL.md to ~/.claude/skills/rich-html-plans and verify 0 drift. Update #plan-state." },
-    "phase3": { "start": "Open the plan at Plans/auto-open-dashboard-plan.html and do Phase 3: open a mirror PR to Quadshift/ai-library with the same step-6 edit (PR only, never merge). Update #plan-state." }
+    "phase1": { "start": "Open the plan at Plans/auto-open-dashboard-plan.html and implement Phase 1: edit rich-html-plans/SKILL.md step 6 so that when the registry ~/.claude/plans-index.json exists it ENSURES the server on EVERY open (probe localhost:7878, start node plans-server.js 7878 hidden if down, re-probe up to 3s), and opens the dashboard tab only on a fresh plans-Chrome window (CIM cmdline match) before the plan tab. Update #plan-state." },
+    "tpl": { "start": "Open the plan at Plans/auto-open-dashboard-plan.html and do Phase 2 (Template link): add an origin-aware sidebar 'Open dashboard' button to rich-html-plans/assets/plan-template.html. When served over http(s) (phone via Tailscale), href='/' on same origin and show immediately. When file://, href='http://localhost:7878/' and reveal only if a no-cors fetch probe (on load + each ~4s refresh) succeeds. Backport the same to this plan file. Update #plan-state." },
+    "phase2": { "start": "Open the plan at Plans/auto-open-dashboard-plan.html and do Phase 3 (Deploy): copy both SKILL.md and assets/plan-template.html to ~/.claude/skills/rich-html-plans and verify 0 drift. Update #plan-state." },
+    "phase3": { "start": "Open the plan at Plans/auto-open-dashboard-plan.html and do Phase 4 (Mirror): open a mirror PR to Quadshift/ai-library with both the step-6 SKILL.md edit and the plan-template.html sidebar link (PR only, never merge). Update #plan-state." }
   },
   "log": []
 }
@@ -738,7 +811,7 @@
   // ── Config ──
   var TKEY = 'auto-open-dashboard-theme';     // localStorage: theme preference
   var SKEY = 'auto-open-dashboard-scroll';    // sessionStorage: scroll Y across reload
-  var ids = ['phase1', 'phase2', 'phase3']; // EXACTLY the tracked section ids
+  var ids = ['phase1', 'tpl', 'phase2', 'phase3']; // EXACTLY the tracked section ids
   var labels = { todo: 'To do', doing: 'In progress', done: 'Done' };
   var RELOAD_MS = 4000;
 
@@ -1288,6 +1361,24 @@
       sp.style.setProperty('--my', e.clientY + 'px');
       sp.classList.add('on');
     }, { passive: true });
+  })();
+
+  // ── Dashboard link (origin-aware) — opt-in fallback to the live plans dashboard ──
+  // Served over http(s) (e.g. phone via Tailscale): the dashboard IS this origin → link "/", always shown.
+  // Local file://: the dashboard is http://localhost:7878/ → no-cors probe; reveal only if it answers.
+  (function () {
+    var link = document.getElementById('dash-link');
+    if (!link) return;
+    var DASH_LOCAL = 'http://localhost:7878/';   // documented default port (matches setup-dashboard.ps1)
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+      link.href = '/'; link.removeAttribute('hidden'); return;     // dashboard served this page → home is "/"
+    }
+    if (location.protocol !== 'file:' || !window.fetch) return;     // unknown origin → stay hidden
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 1200);
+    fetch(DASH_LOCAL, { mode: 'no-cors', signal: ctrl ? ctrl.signal : undefined })
+      .then(function () { clearTimeout(to); link.href = DASH_LOCAL; link.removeAttribute('hidden'); })
+      .catch(function () { clearTimeout(to); link.setAttribute('hidden', ''); });
   })();
 
   // ── Auto-refresh + auto-focus on the in-progress section ──
